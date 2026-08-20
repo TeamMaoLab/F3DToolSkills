@@ -1,63 +1,31 @@
-# 导出轴承 S2 关键截面草图的真实几何（Fusion 本尊数据）→ sketch2.json
-# 曲线类型：line / circle / arc，坐标为草图空间 cm → 统一转 mm
-import json as _json_x
-import math as _math_x
+# 从当前打开的轴承文档 dump 全部草图几何（含可见性），供网页逐线对照
+import json as _j
 import adsk.core
 import adsk.fusion
 
-_app_dx = adsk.core.Application.get()
-_des_dx = _app_dx.activeDocument.design
-_root_dx = _des_dx.rootComponent
+_app = adsk.core.Application.get()
+_d = [x for x in _app.documents if x.design.rootComponent.occurrences.count == 1][0]
+_d.activate()
+_comp = _d.design.rootComponent.occurrences.item(0).component
+_out = {}
+for _s in _comp.sketches:
+    _cs = []
+    for _ln in _s.sketchCurves.sketchLines:
+        _cs.append(('L',
+                    (round(_ln.startSketchPoint.geometry.x * 10, 2), round(_ln.startSketchPoint.geometry.y * 10, 2)),
+                    (round(_ln.endSketchPoint.geometry.x * 10, 2), round(_ln.endSketchPoint.geometry.y * 10, 2))))
+    for _ar in _s.sketchCurves.sketchArcs:
+        _cc = _ar.centerSketchPoint.geometry
+        _cs.append(('A',
+                    (round(_cc.x * 10, 2), round(_cc.y * 10, 2)),
+                    (round(_ar.startSketchPoint.geometry.x * 10, 2), round(_ar.startSketchPoint.geometry.y * 10, 2)),
+                    (round(_ar.endSketchPoint.geometry.x * 10, 2), round(_ar.endSketchPoint.geometry.y * 10, 2)),
+                    round(_ar.radius * 10, 2)))
+    for _ci in _s.sketchCurves.sketchCircles:
+        _cc = _ci.centerSketchPoint.geometry
+        _cs.append(('C', (round(_cc.x * 10, 2), round(_cc.y * 10, 2)), round(_ci.radius * 10, 2)))
+    _out[_s.name] = {'curves': _cs, 'visible': _s.isVisible}
 
-# 找轴承组件里的草图（优先名含"截面/闭环"，否则取组件内全部草图）
-_target_dx = None
-for _o_dx in _root_dx.occurrences:
-    if '轴承-全' in _o_dx.component.name:
-        _target_dx = _o_dx.component
-        break
-if _target_dx is None:
-    _target_dx = _root_dx
-
-_curves_dx = []
-for _sk_dx in _target_dx.sketches:
-    _meta_dx = {'sketch': _sk_dx.name, 'curves': []}
-    _sc_dx = _sk_dx.sketchCurves
-    for _ln_dx in _sc_dx.sketchLines:
-        _meta_dx['curves'].append({
-            't': 'line',
-            'a': [_ln_dx.startSketchPoint.geometry.x * 10, _ln_dx.startSketchPoint.geometry.y * 10],
-            'b': [_ln_dx.endSketchPoint.geometry.x * 10, _ln_dx.endSketchPoint.geometry.y * 10]})
-    for _ci_dx in _sc_dx.sketchCircles:
-        _meta_dx['curves'].append({
-            't': 'circle',
-            'c': [_ci_dx.centerSketchPoint.geometry.x * 10, _ci_dx.centerSketchPoint.geometry.y * 10],
-            'r': _ci_dx.radius * 10})
-    for _ar_dx in _sc_dx.sketchArcs:
-        _c_dx = _ar_dx.centerSketchPoint.geometry
-        _meta_dx['curves'].append({
-            't': 'arc',
-            'c': [_c_dx.x * 10, _c_dx.y * 10],
-            'r': _ar_dx.radius * 10,
-            'a': [_ar_dx.startSketchPoint.geometry.x * 10, _ar_dx.startSketchPoint.geometry.y * 10],
-            'b': [_ar_dx.endSketchPoint.geometry.x * 10, _ar_dx.endSketchPoint.geometry.y * 10]})
-    for _sp_dx in _sc_dx.sketchFittedSplines:
-        _pts_dx = [[_p_dx.x * 10, _p_dx.y * 10] for _p_dx in _sp_dx.getSketchPoints()]
-        if len(_pts_dx) > 1:
-            _meta_dx['curves'].append({'t': 'spline', 'pts': _pts_dx})
-    _curves_dx.append(_meta_dx)
-
-_out_dx = {
-    'unit': 'mm',
-    'source': 'Fusion 360',
-    'component': _target_dx.name,
-    'sketches': _curves_dx,
-}
-_path_dx = 'D:/robot/F3DToolSkills/skills/3dprint-bearing/sketch2.json'
-with open(_path_dx, 'w', encoding='utf-8') as _f_dx:
-    _json_x.dump(_out_dx, _f_dx, ensure_ascii=False)
-_result = {
-    'ok': True,
-    'out': _path_dx,
-    'sketches': [(m['sketch'], len(m['curves'])) for m in _curves_dx],
-    'total_curves': sum(len(m['curves']) for m in _curves_dx),
-}
+with open('D:/robot/F3DToolSkills/skills/3dprint-bearing/sketch2.json', 'w', encoding='utf-8') as _f:
+    _j.dump({'unit': 'mm', 'component': _comp.name, 'sketches': _out}, _f, ensure_ascii=False)
+_result = {'ok': True, 'sketches': {k: len(v['curves']) for k, v in _out.items()}}

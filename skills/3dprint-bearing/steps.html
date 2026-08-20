@@ -172,7 +172,7 @@ function drawS2(){
  const p=P(),d=derive(p),cv=$('sk2');
  const t=d.rg/Math.SQRT2, zB=d.zB, Dh=p.Dh;
  // 与 Fusion 同构的曲线生成（x=半径, z=深度向下）
- const off=2*t-d.delta, xa=d.Rt-t, xb=d.Rt+t;
+ const off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t;
  const inner=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],'arcL',[d.R1,zB+off],[d.R1,Dh],[0,Dh]];
  const outer=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],'arcR',[d.R4,zB+off],[d.R4,Dh],[d.R5,Dh],[d.R5,0]];
  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
