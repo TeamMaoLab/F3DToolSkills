@@ -90,3 +90,11 @@
   拿的 occ 或 createForAssemblyContext(rootocc) 均实测 OK（2026-08-20 三路径对照）。
 - `attributes.itemsByGroup()` 返回 **AttributeVector，无 .count**——用 `list(g)` 后 len/迭代。
 - 文档属性存参数是好模式：参数随文档持久、跨会话、不改脚本（见 3dprint-bearing 修改姿势）。
+
+## 圆周阵列（合一阵列实验 2026-08-20，实测）
+- **切割(combine)特征可以进 ObjectCollection 阵列**（推翻"combine 不可阵列"旧结论）——
+  但**不要这么做**：阵列副本重算会摧毁目标体（中环被算到 0.1mm³，API 却全程返回成功）。
+  稳定路线仍是：刀体先阵列 ×N → 一次性 Cut。
+- **圆角特征不可进阵列**：FILLET_NO_EDGE_FOUND（副本里引用边找不到对应）。圆角永远阵列后做。
+- 阵列副本的面拓扑类型会变（母窝 Sphere → 副本 Nurbs）——按面型选边/选面的逻辑在
+  阵列副本上不可靠，用几何判据（顶点到刀圆距离等）。
