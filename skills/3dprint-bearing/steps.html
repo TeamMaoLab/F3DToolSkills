@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D 打印轴承 · 构建步骤</title><style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2128;--sub:#5a6472;--line:#e3e6ea;--acc:#3b82f6;--ok:#16a34a}
+html.dark{--bg:#111418;--card:#1a1f26;--fg:#e6e9ee;--sub:#8b94a1;--line:#2a313a;--acc:#60a5fa;--ok:#4ade80}
+*{box-sizing:border-box}body{margin:0;font:14px/1.7 system-ui,'Segoe UI','Microsoft YaHei';background:var(--bg);color:var(--fg)}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px}
+h1{font-size:18px;margin:0 0 4px}.sub{color:var(--sub);font-size:13px;margin-bottom:20px}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:10px;list-style:none}
+summary::-webkit-details-marker{display:none}
+.tag{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;border-radius:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700}
+.body{padding:0 16px 14px 60px;border-top:1px solid var(--line)}
+ol{margin:8px 0;padding-left:20px}li{margin:4px 0}
+.v{margin-top:8px;font-size:12.5px;color:var(--ok);background:transparent;border-left:3px solid var(--ok);padding:4px 10px;border-radius:0 6px 6px 0}
+.mono{font-family:Consolas,monospace;color:var(--sub);font-size:12.5px}
+a{color:var(--acc);text-decoration:none}
+</style></head><body><div class="wrap">
+<h1>3D 打印轴承 · 构建步骤</h1>
+<div class="sub">孔内成型 · gen_bearing_full.py · 点击大步骤展开小步骤 · 验收点标绿</div>
+
+<details open><summary><span class="tag">S0</span>输入与配方派生</summary><div class="body">
+<ol>
+<li>读设计选择集里的圆柱孔面（无则自愈：删旧组件反推孔签名）</li>
+<li>反读基准系：轴向 u / 孔口 A0 / 半径 R_h / 深度 D_h（椭圆环缘定向，面积法在斜孔下不准）</li>
+<li>文档属性 <span class="mono">F3DToolSkills</span> 组参数覆盖（N_BALLS/DBALL/CLR/RFILLET）</li>
+<li>配方派生：R_track=R_h−δ−壁厚、R1–R5、窝 rg=球/2+clr、球数 N 公式（θ口/θ窝/θ球 取 max）</li>
+</ol>
+<div class="v">验收：孔深 ≥ 球径+2clr+1.1；两端环缘为正圆（斜孔拒绝）</div>
+</div></details>
+
+<details><summary><span class="tag">S1</span>过轴平面</summary><div class="body">
+<ol><li>按孔轴 u 建过轴基准面（构造平面，按名复用）</li></ol>
+<div class="v">验收：平面法向 ⊥ u</div></div></details>
+
+<details><summary><span class="tag">S2</span>闭环截面草图</summary><div class="body">
+<ol>
+<li>截面三闭环：内盘剖面 / 中环剖面（球道凹口）/ 外环剖面</li>
+<li>r=0 构造线兼旋转轴；全构造线打底，尺寸回溯到 S0 参数</li>
+<li>世界坐标落笔一律 <span class="mono">modelToSketchSpace()</span></li>
+</ol>
+<div class="v">验收：profile 数 in=1、ring=1、out=1</div></div></details>
+
+<details><summary><span class="tag">S3</span>旋转三体</summary><div class="body">
+<ol><li>三剖面分别 revolve 成内盘 / 中环 / 外环毛坯（3 参 createInput + .operation）</li></ol>
+<div class="v">验收：体积对账（理论公式 vs 实测）；分类命名正确</div></div></details>
+
+<details><summary><span class="tag">S4</span>球窝切割</summary><div class="body">
+<ol>
+<li>球刀 tempBrep 球体（窝半径 rg）</li>
+<li>刀体圆周阵列 ×N（combine 不可阵列——先阵列刀再一次性 Cut）</li>
+<li>对中环一次 Cut 出全部球窝</li>
+</ol>
+<div class="v">验收：窝面型 = Torus 真弧（折线=废品）；窝数 = N</div></div></details>
+
+<details><summary><span class="tag">S5</span>装球口（V 形凸雕）</summary><div class="body">
+<ol>
+<li>切平面三点式挂草图参考点（防圆角断链）</li>
+<li>楔形草图 → 凸雕 V 口（开口朝 +Y 侧）</li>
+</ol>
+<div class="v">验收：凹陷方向（质心径向 &lt; R3）；连续区面法向校验</div></div></details>
+
+<details><summary><span class="tag">S6</span>标准球 + 圆周阵列</summary><div class="body">
+<ol>
+<li>tempBrep 标准球（球心 z=孔深/2，骑 R_track 圆）</li>
+<li>圆周阵列 ×N（ObjectCollection 入参）</li>
+</ol>
+<div class="v">验收：球心共面 z=D_h/2；球数 = N</div></div></details>
+
+<details><summary><span class="tag">S7</span>口棱圆角</summary><div class="body">
+<ol>
+<li>边集筛选：凹陷面 ∩ 球窝面交界（每球位 2 条，不是 V 口侧棱）</li>
+<li>一个特征全倒（阵列复制不了圆角——先阵列后圆角）</li>
+</ol>
+<div class="v">验收：圆角面积 = 1.192×2/球位</div></div></details>
+
+<details><summary><span class="tag">S8</span>宿主融合</summary><div class="body">
+<ol><li>外环 JOIN 进宿主；融合特征签名含宿主名（防同径多孔互清杀）</li></ol>
+<div class="v">验收：宿主上 Torus 面 ×1</div></div></details>
+
+<details><summary><span class="tag">S9</span>整理与验收</summary><div class="body">
+<ol>
+<li>球自然序重命名（球01…球NN，无 "(1)" 后缀）</li>
+<li>脚手架收起：草图 isVisible=False、构造面灭灯</li>
+<li>选择集：no3dprint（全部球，导出打印时一键隐藏；root 视图 occ 收集）</li>
+<li>verify 汇总 + 生成 HTML 报告（桌面 + <a href="/report">/report</a>）</li>
+</ol>
+<div class="v">验收：总结论 PASS ✓ 才算交付；幂等重跑两轮一致</div></div></details>
+
+<div class="sub" style="margin-top:16px">改参数 → 文档属性 → 重新注入（自愈自动重建）｜TeamMaoLab · F3DToolSkills</div>
+</div></body></html>

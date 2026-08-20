@@ -594,6 +594,22 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         try:
+            # ---- 构建步骤文档（磁盘优先，热更新）----
+            if path == '/steps':
+                import os as _o
+                here = _o.path.dirname(_o.path.abspath(__file__))
+                _sp = _o.path.join(here, 'steps.html')
+                if not _o.path.isfile(_sp):
+                    self._json({'ok': False, 'error': 'steps.html 缺失'}, 404)
+                    return
+                with open(_sp, encoding='utf-8') as _sf:
+                    _sb = _sf.read().encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(_sb)))
+                self.end_headers()
+                self.wfile.write(_sb)
+
             # ---- 主页（插件控制面板）----
             if path == '/' or path == '/index.html':
                 _body = _load_home().encode('utf-8')
