@@ -463,6 +463,66 @@ def _do_brep_stats():
     }
 
 
+# ============ 主页（自包含，亮暗双主题） ============
+
+_HOME_PAGE = """<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>F3DToolSkills Endpoint</title><style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2128;--sub:#5a6472;--line:#e3e6ea;--acc:#3b82f6;--ok:#16a34a}
+html.dark{--bg:#111418;--card:#1a1f26;--fg:#e6e9ee;--sub:#8b94a1;--line:#2a313a;--acc:#60a5fa;--ok:#4ade80}
+*{box-sizing:border-box}body{margin:0;font:14px/1.6 system-ui,'Segoe UI','Microsoft YaHei';background:var(--bg);color:var(--fg);transition:background .2s}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+h1{font-size:18px;margin:0;display:flex;align-items:center;gap:10px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:p 2s infinite}
+@keyframes p{50%{opacity:.5}}
+.theme{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:5px 12px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.k{color:var(--sub);font-size:12px} .v{font-size:15px;font-weight:600;margin-top:2px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+h2{font-size:14px;margin:0 0 10px;color:var(--sub);font-weight:600}
+textarea{width:100%;min-height:72px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font:13px/1.5 Consolas,monospace;resize:vertical}
+.row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+button{cursor:pointer;border:0;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600}
+.run{background:var(--acc);color:#fff} .ghost{background:transparent;border:1px solid var(--line);color:var(--fg)}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.5 Consolas,monospace;overflow:auto;max-height:240px;white-space:pre-wrap}
+a{color:var(--acc);text-decoration:none} .hint{color:var(--sub);font-size:12px}
+</style></head><body><div class="wrap">
+<header><h1><span class="dot"></span>F3DToolSkills Endpoint</h1>
+<button class="theme" onclick="tg()">🌙 / ☀️</button></header>
+<div class="grid">
+<div class="card"><div class="k">Fusion</div><div class="v" id="v-fusion">…</div></div>
+<div class="card"><div class="k">Python</div><div class="v" id="v-py">…</div></div>
+<div class="card"><div class="k">端口</div><div class="v">127.0.0.1:9099</div></div>
+<div class="card"><div class="k">活动文档</div><div class="v" id="v-doc">…</div></div>
+</div>
+<section><h2>快捷注入（/exec）</h2>
+<textarea id="code">import adsk.core as c
+_result = c.Application.get().activeDocument.name</textarea>
+<div class="row"><button class="run" onclick="run()">▶ 执行</button>
+<span class="hint" style="align-self:center">结果看 _result 变量；print 不回传</span></div>
+<pre id="out" style="display:none"></pre></section>
+<section><h2>产出</h2>
+<div class="row"><a href="/report"><button class="ghost">📄 最新构建报告</button></a></div>
+<div class="hint" style="margin-top:8px">报告由 3dprint-bearing 等应用生成，每次构建自动更新。</div></section>
+<div class="hint">TeamMaoLab · <a href="https://github.com/TeamMaoLab/F3DToolSkills" target="_blank">GitHub</a> · 本服务只绑定本机回环，勿转发公网</div>
+</div>
+<script>
+const d=document.documentElement,ls=localStorage;
+if(ls.theme==='dark'||(!ls.theme&&matchMedia('(prefers-color-scheme: dark)').matches))d.classList.add('dark');
+function tg(){d.classList.toggle('dark');ls.theme=d.classList.contains('dark')?'dark':'light'}
+fetch('/ping').then(r=>r.json()).then(j=>{document.getElementById('v-py').textContent='Python '+j.python});
+fetch('/exec?code='+encodeURIComponent('import adsk.core as c;a=c.Application.get();_result=(a.activeDocument.name)'))
+ .then(r=>r.json()).then(j=>{document.getElementById('v-doc').textContent=j.result||'—'});
+document.getElementById('v-fusion').textContent='Fusion 360';
+function run(){const c=document.getElementById('code').value,o=document.getElementById('out');
+o.style.display='block';o.textContent='执行中…';
+fetch('/exec?code='+encodeURIComponent(c)).then(r=>r.json())
+ .then(j=>o.textContent=JSON.stringify(j,null,2)).catch(e=>o.textContent='错误: '+e)}
+</script></body></html>"""
+
+
 # ============ HTTP Handler ============
 
 class Handler(BaseHTTPRequestHandler):
@@ -521,6 +581,15 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         try:
+            # ---- 主页（插件控制面板）----
+            if path == '/' or path == '/index.html':
+                _body = _HOME_PAGE.encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(_body)))
+                self.end_headers()
+                self.wfile.write(_body)
+
             # ---- 报告伺服（HTML 直出，给 agent 客户端 webview 用）----
             if path == '/report':
                 _home = os.path.expanduser('~')
@@ -607,9 +676,8 @@ class Handler(BaseHTTPRequestHandler):
 
             else:
                 self._json({'ok': False, 'error': '未知路径: ' + path,
-                            'routes': ['/ping', '/reload', '/exec?code=',
-                                       '/export?dir=', '/export_assembly?dir=',
-                                       '/model', '/brep_stats', '/modules']}, 404)
+                            'routes': ['/', '/ping', '/report', '/exec?code=',
+                                       '/reload', '/modules']}, 404)
 
         except Exception as e:
             self._json({'ok': False, 'error': str(e), 'traceback': traceback.format_exc()}, 500)
