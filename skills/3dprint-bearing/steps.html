@@ -49,6 +49,7 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <button class="s2nav" onclick="s2Go(0)" title="全部">⟶全显</button>
 <span class="note" id="s2-desc" style="margin:0"></span></div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:8px;margin-top:8px"></canvas>
+<canvas id="sk2d" style="width:100%;height:auto;display:block;background:#fff;border:1px dashed #b0bec5;border-radius:8px;margin-top:8px"></canvas>
 <div class="note" id="sk2-verify" style="font:12px Consolas,monospace;color:var(--sub)">对照中…</div>
 <div class="note" style="line-height:1.9">构造顺序：<br>
 ① r=0 轴与深度界线 → ② 刀圆（R_track, z_B, r_g）<br>
@@ -133,7 +134,7 @@ function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘球道凹口：刀圆@Rt,z
 
 
 function renderAll(){const p=P(),d=derive(p);
- drawS2();verifyVsFusion();
+ drawS2();drawDetail();verifyVsFusion();
  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
  <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
@@ -227,6 +228,65 @@ function drawS2(){
  ctx.textAlign='center';ctx.fillText('D_h='+p.Dh.toFixed(1),0,0);ctx.restore();
 }
 
+function drawDetail(){
+ const p=P(),d=derive(p),cv=$('sk2d');
+ const t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
+ const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
+ // 放大区：x∈[xa-0.45, xb+0.45], z∈[zB-1.5, zB+1.5] → 约 7x 主图比例
+ const x0=xa-0.45, x1=xb+0.45, z0=zB-1.5, z1=zB+1.5;
+ const pad={l:52,r:120,t:26,b:30};
+ const sc=Math.min((W-pad.l-pad.r)/(x1-x0),220/(z1-z0));
+ const H=Math.round(pad.t+pad.b+(z1-z0)*sc);
+ cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';cv.style.background='#fff';
+ const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+ const X=r=>pad.l+(r-x0)*sc, Y=z=>pad.t+(z-z0)*sc;
+ // 网格 0.1mm
+ ctx.strokeStyle='#e8f0fa';ctx.lineWidth=1;
+ for(let r=Math.ceil(x0*10)/10;r<=x1;r+=0.1){ctx.beginPath();ctx.moveTo(X(r),pad.t);ctx.lineTo(X(r),H-pad.b);ctx.stroke();}
+ for(let z=Math.ceil(z0*10)/10;z<=z1;z+=0.1){ctx.beginPath();ctx.moveTo(pad.l,Y(z));ctx.lineTo(W-pad.r,Y(z));ctx.stroke();}
+ // 内盘：R1 竖边 + 45°切线 + 左弧（真几何）
+ ctx.strokeStyle='#1e88e5';ctx.lineWidth=2;
+ ctx.beginPath();
+ ctx.moveTo(X(d.R1),Y(zB-1.5));ctx.lineTo(X(d.R1),Y(zB-off));
+ ctx.lineTo(X(xa),Y(zB-t));
+ // 弧采样（过 180°）
+ const TAU=Math.PI*2;
+ let a0=Math.atan2((zB-t)-zB,xa-d.Rt), a1=Math.atan2((zB+t)-zB,xa-d.Rt);
+ for(let i=1;i<=40;i++){const a=a0+(a1>a0?(a1-a0):(a1+TAU-a0))*i/40;
+  ctx.lineTo(X(d.Rt+d.rg*Math.cos(a)),Y(zB+d.rg*Math.sin(a)));}
+ ctx.lineTo(X(d.R1),Y(zB+off));ctx.lineTo(X(d.R1),Y(zB+1.5));
+ ctx.stroke();
+ // 外环：R4 竖边 + 切线 + 右弧
+ ctx.beginPath();
+ ctx.moveTo(X(d.R4),Y(zB-1.5));ctx.lineTo(X(d.R4),Y(zB-off));
+ ctx.lineTo(X(xb),Y(zB-t));
+ a0=Math.atan2((zB-t)-zB,xb-d.Rt); a1=Math.atan2((zB+t)-zB,xb-d.Rt);
+ let dd=(a1-a0)%TAU;if(dd<0)dd+=TAU; // 经 0°
+ for(let i=1;i<=40;i++){const a=a0+dd*i/40;
+  ctx.lineTo(X(d.Rt+d.rg*Math.cos(a)),Y(zB+d.rg*Math.sin(a)));}
+ ctx.lineTo(X(d.R4),Y(zB+off));ctx.lineTo(X(d.R4),Y(zB+1.5));
+ ctx.stroke();
+ // 刀圆虚线
+ ctx.strokeStyle='#16a34a';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+ ctx.beginPath();ctx.arc(X(d.Rt),Y(zB),d.rg*sc,0,TAU);ctx.stroke();ctx.setLineDash([]);
+ // 切点标记（135°/225°/±45°）
+ ctx.fillStyle='#e65100';ctx.font='11px Consolas,monospace';
+ const tp=(a,label,dx,dy)=>{const px=d.Rt+d.rg*Math.cos(a*Math.PI/180),pz=zB+d.rg*Math.sin(a*Math.PI/180);
+  ctx.beginPath();ctx.arc(X(px),Y(pz),3.5,0,TAU);ctx.fill();
+  ctx.fillText(label,X(px)+dx,Y(pz)+dy);};
+ tp(135,'切点135°',-88,-6);tp(-135,'切点225°',-88,14);tp(45,'切点45°',10,-6);tp(-45,'切点-45°',10,16);
+ // 45°角标注（内盘切线处画小直角三角形+文字）
+ const cx=X(d.R1),cy=Y(zB-off);
+ ctx.strokeStyle='#e65100';ctx.lineWidth=1.2;
+ ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx-16,cy);ctx.lineTo(cx-16,cy-16);ctx.stroke();
+ ctx.fillText('45°',cx-40,cy-4);
+ // 标题与尺寸
+ ctx.fillStyle='#37474f';ctx.font='11px system-ui';
+ ctx.fillText('A 向局部放大（球道区，'+Math.round(sc/54)+'× 主图）',pad.l,pad.t-8);
+ ctx.font='10px Consolas,monospace';
+ const _clen=Math.SQRT2*(t-p.delta);ctx.fillText('r_g='+d.rg.toFixed(2)+'  45°切线段≈√2·(r_g/√2−δ)='+_clen.toFixed(2)+'mm',pad.l,H-10);
+ ctx.fillText('蓝=闭环轮廓  绿虚=刀圆  橙=切点/45°标注',W-pad.r-170,H-10);
+}
 renderAll();
 
 
