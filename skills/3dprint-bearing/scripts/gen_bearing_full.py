@@ -48,6 +48,8 @@ try:
                 except ValueError:
                     continue
                 globals()[_a_ov.name] = _v_ov
+                if _a_ov.name == 'CLR':
+                    globals()['RG'] = DBALL / 2 + _v_ov   # RG 在覆盖块之前已算，需跟 CLR 重算
     del _app_ov, _des_ov, _grp
 except Exception:
     pass  # 无活动文档等情况：静默用默认值
