@@ -243,6 +243,9 @@ def main():
         N_eff = N_BALLS
         th_s = th_e = th_b = 0.0
 
+    steps["S0输入配方"] = "ok 孔⌀{:.0f}×{:.1f} 球⌀{:.3f} N={}".format(
+        R_h * 2, D_h, DBALL, N_eff)
+
     def W(r, z):
         """孔系 (r 径向, z 轴向 0=孔底) → 世界 mm。"""
         return (A0[0] + er0[0] * r + u[0] * z,
