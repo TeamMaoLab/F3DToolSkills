@@ -59,12 +59,16 @@ description: >-
    孔深下限 = 球径+2·clr+1.1（窝上缘≥0.55 打印线，球 2.381/clr0.2 → ≥3.88，推荐 4）；
    孔半径 > ~5.2
 
-## 运行
+## 运行（注入现成脚本，禁止自己写实现）
 
 ```bash
 curl -s --max-time 300 -G http://127.0.0.1:9099/exec \
   --data-urlencode "code@<本skill目录>/scripts/gen_bearing_full.py"
 ```
+
+**本 skill 的所有能力都已脚本化**（见资产表 5 个脚本）——改参数改脚本头部常量
+（DBALL/CLR/N_BALLS），改流程先提 issue 而不是现写变体。自己现写 py = 绕开
+幂等/验收/命名体系 = 前功尽弃。
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
 - 输出看三块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）
