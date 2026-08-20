@@ -428,6 +428,14 @@ def main():
         D2 = W(rc + rr, zc)
         Apex = (C[0] + u[0] * rr, C[1] + u[1] * rr, C[2] + u[2] * rr)
         ax_b = skb.sketchCurves.sketchLines.addByTwoPoints(TL(D1), TL(D2))
+        # r=0 旋转轴（构造线，不影响 profile）——阵列必须绕它；绕球直径转=原地不动（实测踩坑）
+        ax0 = skb.sketchCurves.sketchLines.addByTwoPoints(
+            TL((A0[0], A0[1], A0[2])),
+            TL((A0[0] + u[0], A0[1] + u[1], A0[2] + u[2])))
+        try:
+            ax0.isConstruction = True
+        except Exception:
+            pass
         skb.sketchCurves.sketchArcs.addByThreePoints(TL(D1), TL(Apex), TL(D2))
         ocb = adsk.core.ObjectCollection.create()
         for i in range(skb.profiles.count):
@@ -446,7 +454,7 @@ def main():
         fb.name = name
         bd = fb.bodies.item(0)
         bd.name = name
-        return bd, fb, ax_b
+        return bd, fb, ax0
 
     try:
         if ring is None:
@@ -867,7 +875,15 @@ def main():
                     verify[nm + "-真弧"] = "✓ Torus×{}".format(n_torus) if n_torus else "✗ 仍是折线"
         steps_ok = all("FAIL" not in str(v) for v in steps.values())
         pos_ok = all(v.get("位置") != "✗" for v in verify.values() if isinstance(v, dict))
-        n_ball_ok = sum(1 for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else []) if b.name.startswith("球")) == N_eff
+        _balls_v = [b for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else [])
+                    if b.name.startswith("球")]
+        _centers = set()
+        for b in _balls_v:
+            bb_ = b.boundingBox
+            _centers.add((round((bb_.minPoint.x + bb_.maxPoint.x) * 5, 1),
+                          round((bb_.minPoint.y + bb_.maxPoint.y) * 5, 1),
+                          round((bb_.minPoint.z + bb_.maxPoint.z) * 5, 1)))
+        n_ball_ok = len(_balls_v) == N_eff and len(_centers) == N_eff  # 去重=N：防阵列轴过球心全叠一起
         verify["总结论"] = ("PASS ✓" if (steps_ok and pos_ok and n_ball_ok)
                             else "FAIL ✗ steps_ok={} pos_ok={} balls8={}".format(steps_ok, pos_ok, n_ball_ok))
     except Exception as e:
