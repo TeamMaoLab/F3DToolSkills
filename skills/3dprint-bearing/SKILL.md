@@ -42,6 +42,11 @@ description: >-
 
 ## 前置检查（每次运行前）
 
+> ⚠ 写/改任何注入代码前，先查底座 `../f3dtoolskills/reference/api_pitfalls.md`
+> （ValueInput/createSphere/ObjectCollection 等坑都有正确写法，别靠报错试）。
+> 用户只是想"看个轴承效果"（无孔宿主）→ 不跑本 skill，另写独立演示脚本；
+> 本 skill 只在满足输入契约（孔面在设计选择集）时运行。
+
 1. `curl -s --max-time 5 http://127.0.0.1:9099/ping` —— 不通则按底座 f3dtoolskills 的「安装规范」装/启动 add-in
 2. Fusion 打开目标文档
 3. **孔面在设计选择集**里（不是 UI 选中——`/exec` 每次都会清掉 UI 选中）。契约：圆柱孔；

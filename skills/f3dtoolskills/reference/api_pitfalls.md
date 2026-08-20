@@ -67,3 +67,10 @@
 - `Occurrence` **无 `parentOccurrence`**——祖先链靠自顶向下递归时随身携带
   （rootComponent.occurrences → occ.childOccurrences）。
 - 选项里有 `isIncludingInvisibleComponents/Bodies` 可绕开 lightbulb 链（未验证导出质量）。
+
+## 值/输入对象（WorkBuddy 实战补充 2026-08-20）
+- `ValueInput` **无 createByInteger** → 用 `createByReal`（或 createByString）。
+- `TemporaryBRepManager.createSphere(center, radius)` 的 radius 是**原始 double（cm）**，
+  不吃 ValueInput。
+- `CircularPatternFeatures.createInput` 入参要 **ObjectCollection**，Python list 必拒
+  （与 MoveFeatures 同源；SelectionSets.add 则相反只要 list——三个 API 三种口味，别背错）。

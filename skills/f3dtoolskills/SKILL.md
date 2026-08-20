@@ -145,6 +145,8 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode \
    常见故障。格式参照 `../stl-export/SKILL.md`（简）或 `../3dprint-bearing/SKILL.md`（全）。
 4. **放置**：用户的个人流程放他自己的 `~/.agents/skills/<应用名>/`（跨工具可见、不受插件
    升级影响）；要贡献回 F3DToolSkills 就放插件 `skills/` 下提 PR。
+   **不要把脚本写进 `~/.agents/skills/f3dtoolskills/`（底座目录）**——那是插件的内容，
+   重装/升级即被覆盖。
 5. **沉淀完当场验收**：按 SKILL.md 自己写的触发词、输入契约、运行命令走一遍全链路，
    PASS 才交付——你写的说明书自己要先照着跑通。
 6. 参数多的流程可加自包含设计器 `designer/*.html`（浏览器直接打开，参照
