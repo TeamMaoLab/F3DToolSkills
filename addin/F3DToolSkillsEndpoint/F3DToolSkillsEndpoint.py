@@ -477,6 +477,44 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def do_POST(self):
+        """POST /exec —— 长/含特殊字符脚本用 POST，无 URL 长度限制。
+        Body 三种形态任选：
+          1. 纯文本 body 即代码（Content-Type: text/plain 或无类型）
+          2. JSON {"code": "..."}
+          3. 表单 code=...（curl --data-urlencode "code@script.py" 默认形态）
+        """
+        parsed = urlparse(self.path)
+        if parsed.path != '/exec':
+            self._json({'ok': False, 'error': f'POST 只支持 /exec，收到 {parsed.path}'}, 404)
+            return
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length).decode('utf-8', 'replace') if length else ''
+            ctype = (self.headers.get('Content-Type') or '').lower()
+            code = ''
+            if 'json' in ctype:
+                try:
+                    code = json.loads(raw).get('code', '')
+                except Exception:
+                    self._json({'ok': False, 'error': 'JSON body 解析失败'}, 400)
+                    return
+            elif 'form' in ctype:
+                code = parse_qs(raw).get('code', [''])[0]
+            else:
+                code = raw  # 纯文本
+            if not code:
+                self._json({'ok': False, 'error': 'body 为空或不含 code'}, 400)
+                return
+            result, error = _enqueue_main(lambda: _do_exec(code))
+            if error:
+                self._json({'ok': False, 'error': str(error),
+                            'traceback': traceback.format_exc()}, 500)
+            else:
+                self._json({'ok': True, 'result': result})
+        except Exception:
+            self._json({'ok': False, 'error': traceback.format_exc(limit=5)}, 500)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path

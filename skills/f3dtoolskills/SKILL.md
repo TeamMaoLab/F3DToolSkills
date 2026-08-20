@@ -90,8 +90,10 @@ Fusion 不允许外部进程启动 add-in。两条路任选：
 
 ```bash
 curl http://127.0.0.1:9099/ping                                              # 连通性
+# 长脚本用 POST（无 URL 长度限制，body=纯文本/JSON/表单均可）：
+curl -s --max-time 300 http://127.0.0.1:9099/exec --data-urlencode "code@scripts/xxx.py"
 curl http://127.0.0.1:9099/reload                                            # 热重载（仅 inf3d/common）
-curl -G http://127.0.0.1:9099/exec --data-urlencode "code@scripts/xxx.py"    # 注入脚本（主线程执行）
+curl -G http://127.0.0.1:9099/exec --data-urlencode "code@scripts/xxx.py"    # 一行式短代码（GET）
 curl -G http://127.0.0.1:9099/exec --data-urlencode \
   "code=import adsk.core as c;_result=c.Application.get().activeDocument.name"   # 一行式：结果放 _result
 ```
