@@ -213,7 +213,7 @@ function drawS2(){
  function drawLoop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
   ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
   for(let i=1;i<pts.length;i++){const q=pts[i];
-   if(q==='arcL')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*.75,Math.PI*1.25,false);
+   if(q==='arcL')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*1.25,Math.PI*.75,true); // 从上切点225°逆时针过180°到135°，与前置线段零跳变
    else if(q==='arcR')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,-Math.PI/4,Math.PI/4,false);
    else ctx.lineTo(X(q[0]),Yz(q[1]));}
   ctx.closePath();ctx.stroke();}
