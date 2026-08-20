@@ -284,7 +284,7 @@ def main():
     Cut = adsk.fusion.FeatureOperations.CutFeatureOperation
     planes = comp.constructionPlanes
 
-    # ============ ① 过轴构造平面（实体引用三点）============
+    # ============ S1 过轴构造平面（实体引用三点）============
     skp = comp.sketches.add(comp.xYConstructionPlane)
     skp.name = "参考点"
     pA = skp.sketchPoints.add(adsk.core.Point3D.create(cm(A0[0]), cm(A0[1]), cm(A0[2])))
@@ -311,7 +311,7 @@ def main():
                 adsk.core.Point3D.create(cm(p_w[0]), cm(p_w[1]), cm(p_w[2])))
         return TL
 
-    # ============ ② 三闭环草图（真圆弧窝，逆映射落笔）============
+    # ============ S2 三闭环草图（真圆弧窝，逆映射落笔）============
     def make_loop_sketch(name, segs, seg_arc):
         """segs: 直线段 [(p1,p2),...]（世界mm对）；seg_arc: (起,中,末) 真弧。
         返回 (sk, 最后一条线) —— 内盘最后一条线 = r=0 轴。"""
@@ -363,7 +363,7 @@ def main():
         return {"error": "闭环草图面域数异常（in={} ring={} out={}，应各=1；闭环未咬合）".format(
             sk_in.profiles.count, sk_ring.profiles.count, sk_out.profiles.count)}
 
-    # ============ ③ 三体旋转 ============
+    # ============ S3 三体旋转 ============
     def revolve_sk(sk, name):
         revs = comp.features.revolveFeatures
         oc = adsk.core.ObjectCollection.create()
@@ -394,7 +394,7 @@ def main():
     except Exception as e:
         steps["S3旋转三体"] = "FAIL " + str(e)[:120]
 
-    # ④ 分类
+    # S3· 分类
     inner = ring = outer = None
     try:
         for bd in bodies:
@@ -414,7 +414,7 @@ def main():
     except Exception as e:
         steps["S3·分类"] = "FAIL " + str(e)[:100]
 
-    # ============ ⑤ 球窝切割（球刀体阵列 ×N → 一次性 Cut）============
+    # ============ S4 球窝切割（球刀体阵列 ×N → 一次性 Cut）============
     def make_sphere_body(rc, zc, rr, name, comp_t=None, plane_t=None):
         """球体：截面平面（过轴）上画半圆（逆映射落笔）→ 绕直径旋转。
         默认建在 comp；球组版传 grp + 组内自建平面。返回 (body, feat, 轴线)。"""
@@ -490,7 +490,7 @@ def main():
     except Exception as e:
         steps["S4球窝切割"] = "FAIL " + str(e)[:150]
 
-    # ============ ⑥ 凸雕 V口（−1mm 切入，凹凸验证）============
+    # ============ S5 凸雕 V口（−1mm 切入，凹凸验证）============
     slotW = 2 * (D_h - zB) / math.tan(math.radians(45))
     emb_feat = None
     try:
@@ -599,7 +599,7 @@ def main():
 
     # ⑥b 口棱圆角：移到 ⑨（阵列特征复制不了 fillet，改为阵列后统一倒）
 
-    # ============ S6· 标准球（入球组子组件——2026-08-20 嵌套定则） ============
+    # ============ S6 标准球（入球组子组件——嵌套定则） ============
     grp = grp_name = None
     ball_axis = None
     try:
@@ -632,7 +632,7 @@ def main():
         steps["S6·标准球"] = "FAIL " + str(e)[:120]
         ball_feat = None
 
-    # ============ S6· 圆周阵列（凸雕+圆角+球）============
+    # ============ S6 圆周阵列（凸雕+圆角+球）============
     try:
         # 凸雕留 comp（中环上）；球在球组内用组内轴阵列——与装球口阵列解耦（嵌套定则）
         if emb_feat:
@@ -653,7 +653,7 @@ def main():
     except Exception as e:
         steps["S6·阵列"] = "FAIL " + str(e)[:150]
 
-    # ============ S6· 口棱圆角（阵列后，凹陷∩球窝 边 ×16）============
+    # ============ S6 口棱圆角（阵列后，凹陷∩球窝 边 ×16）============
     fillet_ok = False
     try:
         ring5 = None
@@ -747,7 +747,7 @@ def main():
         steps["S7宿主融合"] = "FAIL " + str(e)[:150]
         verify["宿主融合"] = {"状态": "✗"}
 
-    # ============ S8· 命名与分组整理 ============
+    # ============ S8 命名与分组整理 ============
     try:
         # 球自然序重命名：球-⌀XX / 球-⌀XX (k) → 球01…球NN
         import re as _re
@@ -786,7 +786,7 @@ def main():
     except Exception as e:
         steps["S8·整理"] = "FAIL " + str(e)[:120]
 
-    # ============ S8· 选择集沉淀（球组 / 轴承全部：浏览器点击即选 → 一键隐藏 / 导出）============
+    # ============ S8 选择集沉淀（root 视图：球组 / 轴承全部 / no3dprint）============
     try:
         sig = "⌀{:.0f}".format(R_h * 2)
         set_balls, set_all = "球-" + sig, "轴承-全部-" + sig
@@ -828,7 +828,7 @@ def main():
     except Exception as e:
         steps["S8·选择集"] = "FAIL " + str(e)[:120]
 
-    # ============ ⑪ 交付强制几何验收 ============
+    # ============ S8 交付强制几何验收 ============
     try:
         for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else []):
             # 用实体顶点采样（bbox 对角会虚报径向，如圆柱盒角=√2·R）
