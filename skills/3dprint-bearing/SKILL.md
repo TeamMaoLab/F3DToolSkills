@@ -89,11 +89,7 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode "code@<skill>/scripts/gen_be
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
 - steps 编号 **S0-S8**（S1过轴面/S2闭环草图/S3旋转三体/S4球窝切割/S5装球口/S6标准球+阵列+圆角/S7宿主融合/S8整理与选择集），与 steps.html 手册的流程树同语言
-- 输出看四块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）、
-  **`report_html`（给用户的报告链接：`http://127.0.0.1:9099/report`**：参数表+按实际参数
-  绘制的剖面 SVG+步骤/验收表+下一步指引，写到用户桌面、由端点 /report 伺服）——agent 跑完
-  把这个 http 链接原样发给用户，客户端 webview 直接打开（file:/// 和裸盘符路径在沙箱
-  webview 里都打不开，别用）
+- 输出看三块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）
 - **只有 `verify.总结论 == "PASS ✓"` 才算成功**。steps 全 ok 但几何错的历史案例太多（见下）
 
 ## 验收纪律（不可妥协）
