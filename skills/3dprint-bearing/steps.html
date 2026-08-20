@@ -210,7 +210,7 @@ function drawS2(){
  const p=P(),d=derive(p),cv=$('sk2');
  const model=modelCurves(p,d);
  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
- const pad={l:56,r:28,t:30,b:48};
+ const pad={l:56,r:28,t:30,b:70};
  const sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.5)/(p.Dh+3));
  const H=Math.round(pad.t+pad.b+p.Dh*sc+10);
  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
