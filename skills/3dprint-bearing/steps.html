@@ -46,7 +46,6 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="head"><span class="tag">S2</span>关键截面草图 · 参数化构造复现　<span id="sk2-verify" style="font:12px Consolas,monospace;color:var(--sub)">对照中…</span></div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
 <div class="note">与 Fusion 同一套构造逻辑：45° 倒角=刀圆 135° 切点切线（t=r_g/√2，回到 R1/R4 偏移 2t−δ）· 内外环各带球道弧 · 竖直点划线 x=0 即 r=0 旋转轴 · 改上方参数全图重算</div>
-<div class="row" style="margin-top:8px"><button onclick="exportDXF()" style="cursor:pointer;border:0;border-radius:8px;padding:7px 14px;background:var(--acc);color:#fff;font-size:13px;font-weight:600">⬇ 导出 DXF（可插入 Fusion 草图）</button></div>
 <div class="v">验收：profile 数 in=1、ring=1、out=1</div>
 </div>
 
@@ -77,7 +76,6 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 </div>
 <div class="sub">TeamMaoLab · F3DToolSkills · skills/3dprint-bearing</div>
 </div>
-<script src="/s/3dprint-bearing/vendor/maker.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const P=()=>({Rh:+$('Rh').value||8,Dh:+$('Dh').value||4,db:+$('ball').value,clr:+$('clr').value,delta:0.8,tring:1.0,twall:2.0});
@@ -170,31 +168,6 @@ $('preset').onchange=e=>{const m={12:[6,4],16:[8,4],20:[10,4]}[e.target.value];$
 renderAll();
 
 
-function buildMakerModel(p,d){ // MakerJs 模型：真圆弧对象（DXF/链分析的单一事实源）
- const M=MakerJs, t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
- const Y=z=>-z; // makerjs y 向上；草图深度向下
- const L=(a,b)=>new M.paths.Line([a[0],Y(a[1])],[b[0],Y(b[1])]);
- const A=(aa,bb)=>new M.paths.Arc([d.Rt,Y(zB)],d.rg,M.angle.ofPointInDegrees([d.Rt,Y(zB)],[aa[0],Y(aa[1])]),M.angle.ofPointInDegrees([d.Rt,Y(zB)],[bb[0],Y(bb[1])]));
- const P=M.paths;
- return {paths:{
-  in1:L([0,0],[d.R1,0]), in2:L([d.R1,0],[d.R1,zB-off]), in3:L([d.R1,zB-off],[xa,zB-t]),
-  inA:A([xa,zB-t],[xa,zB+t],180),
-  in4:L([xa,zB+t],[d.R1,zB+off]), in5:L([d.R1,zB+off],[d.R1,Dh]), in6:L([d.R1,Dh],[0,Dh]), in7:L([0,Dh],[0,0]),
-  mid1:L([d.R2,0],[d.R3,0]), mid2:L([d.R3,0],[d.R3,Dh]), mid3:L([d.R3,Dh],[d.R2,Dh]), mid4:L([d.R2,Dh],[d.R2,0]),
-  out1:L([d.R4,0],[d.R4,zB-off]), out2:L([d.R4,zB-off],[xb,zB-t]),
-  outA:A([xb,zB-t],[xb,zB+t],0),
-  out3:L([xb,zB+t],[d.R4,zB+off]), out4:L([d.R4,zB+off],[d.R4,Dh]), out5:L([d.R4,Dh],[d.R5,Dh]), out6:L([d.R5,Dh],[d.R5,0]), out7:L([d.R5,0],[d.R4,0]),
-  cutter:new M.paths.Arc([d.Rt,Y(zB)],d.rg,180,360), cutterL:L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB]),
-  ball:new M.paths.Arc([d.Rt,Y(zB)],p.db/2,180,360), ballL:L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB]),
- }};
-}
-function exportDXF(){
- const p=P(),d=derive(p),model=buildMakerModel(p,d);
- const dxf=MakerJs.exporter.toDXF(model,{units:MakerJs.unitType.Millimeter});
- const a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob([dxf],{type:'application/dxf'}));
- a.download='bearing_section_Rh'+p.Rh+'.dxf'; a.click();
-}
 function modelCurves(p,d){ // 与 Fusion dump 完全同构的曲线表（y=-深度，mm）
  const t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
  const Y=z=>-z, L=(a,b)=>({t:'line',a:[a[0],Y(a[1])],b:[b[0],Y(b[1])]});
