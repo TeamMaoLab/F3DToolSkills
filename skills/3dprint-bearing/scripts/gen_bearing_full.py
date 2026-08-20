@@ -855,7 +855,78 @@ def main():
     }
 
 
+def emit_report(res):
+    """生成自包含 HTML 报告（参数表+步骤验收+剖面 SVG+下一步），返回路径。"""
+    import html as _html_m
+    import os as _os_m
+    b = res.get("bearing", {})
+    N = res.get("n_formula", {}).get("N", "?")
+    R1, R2, R3, R4, R5 = (b.get(k, 0) for k in ("R1", "R2", "R3", "R4", "R5"))
+    Rt, dB, W = b.get("R_track", 0), b.get("dBall", 0), res.get("hole", {}).get("D_h", 4)
+    # 剖面 SVG（上半剖视，mm→px 缩放 6x）
+    sc = 6.0
+    cx, cy = 260, 150
+    def ring(r_in, r_out, fill, name):
+        ri, ro = r_in * sc, r_out * sc
+        return (f'<path d="M {-ro} 0 A {ro} {ro} 0 0 1 {ro} 0 L {ro} 4 A {ro} {ro} 0 0 1 {-ro} 4 Z" fill="{fill}" transform="translate({cx},{cy-40})"/>'
+                f'<circle r="{ri}" fill="none" stroke="#888" stroke-dasharray="3,3" transform="translate({cx},{cy-40})"/>')
+    balls_svg = ""
+    import math as _m
+    for i in range(N if isinstance(N, int) else 0):
+        a = _m.pi * (i + 0.5) / max(N, 1)
+        bx, by = Rt * _m.cos(a) * sc, -(Rt * _m.sin(a) * sc)
+        balls_svg += f'<circle cx="{cx+bx:.1f}" cy="{cy-40+by:.1f}" r="{dB/2*sc:.1f}" fill="#4a90d9"/>'
+    steps_rows = "".join(
+        f'<tr><td>{_html_m.escape(str(k))}</td><td class="ok">{_html_m.escape(str(v))}</td></tr>'
+        for k, v in res.get("steps", {}).items())
+    ver_rows = ""
+    for k, v in res.get("verify", {}).items():
+        if isinstance(v, dict):
+            good = any("\u2713" in str(x) or "\u2714" in str(x) for x in v.values())
+            detail = _html_m.escape(str({kk: vv for kk, vv in v.items() if kk != "\u9762\u578b"})[:120])
+            ver_rows += f'<tr><td>{_html_m.escape(str(k))}</td><td>{"\u2714" if good else "?"}</td><td class="mono">{detail}</td></tr>'
+        else:
+            ver_rows += f'<tr><td>{_html_m.escape(str(k))}</td><td>{"\u2714" if "\u2713" in str(v) or "\u2714" in str(v) else str(v)[:20]}</td><td></td></tr>'
+    attrs_note = ""
+    html = f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<title>\u8f74\u627f\u6784\u5efa\u62a5\u544a</title><style>
+body{{font-family:system-ui,'Microsoft YaHei';margin:24px;background:#f7f8fa;color:#222}}
+h1{{font-size:20px}} h2{{font-size:15px;margin:20px 0 8px;border-left:4px solid #4a90d9;padding-left:8px}}
+table{{border-collapse:collapse;background:#fff;width:100%;font-size:13px}}
+td,th{{border:1px solid #e2e4e8;padding:5px 10px;text-align:left}}
+th{{background:#eef2f7}} .ok{{color:#1a9e55;font-weight:600}} .mono{{font-family:Consolas,monospace;color:#555}}
+.badge{{display:inline-block;background:#1a9e55;color:#fff;border-radius:4px;padding:2px 10px;font-weight:600}}
+.hint{{background:#fff8e6;border:1px solid #f0d47a;padding:8px 12px;font-size:13px;margin-top:14px}}
+</style></head><body>
+<h1>\u2714 \u8f74\u627f\u6784\u5efa\u62a5\u544a <span class="badge">PASS</span></h1>
+<div>\u6587\u6863 {res.get('document')} \uff5c \u7ec4\u4ef6 {_html_m.escape(str(res.get('component','')))} \uff5c {__import__('time').strftime('%Y-%m-%d %H:%M:%S')}</div>
+<h2>\u53c2\u6570</h2>
+<table><tr><th>\u5b54\u5f84\u00d7\u6df1</th><th>\u7403\u5f84</th><th>\u7403\u9053 R_track</th><th>\u7403\u6570 N</th><th>R1-R5</th></tr>
+<tr><td>\u00d8{res.get('hole',{}).get('R_h',0)*2:.0f}\u00d7{W:.0f}</td><td>\u00d8{dB}</td><td>{Rt}</td>
+<td>{N}\uff08{res.get('n_formula',{}).get('\u6a21\u5f0f','')}\uff09</td><td class="mono">{R1}/{R2}/{R3}/{R4}/{R5}</td></tr></table>
+<h2>\u5256\u9762\u793a\u610f\uff08\u6309\u5b9e\u9645\u53c2\u6570\u7ed8\u5236\uff09</h2>
+<svg width="520" height="180" style="background:#fff;border:1px solid #e2e4e8">
+{ring(R1, R2, '#8fc', 0)}{ring(R3, R4, '#c9a', 0)}{balls_svg}
+<line x1="{cx-R5*sc-20}" y1="{cy-40}" x2="{cx+R5*sc+20}" y2="{cy-40}" stroke="#bbb"/>
+</svg>
+<h2>\u6b65\u9aa4</h2><table><tr><th>\u6b65\u9aa4</th><th>\u7ed3\u679c</th></tr>{steps_rows}</table>
+<h2>\u9a8c\u6536</h2><table><tr><th>\u9879</th><th>\u5224\u5b9a</th><th>\u8bc1\u636e</th></tr>{ver_rows}</table>
+<div class="hint">\u4e0b\u4e00\u6b65\uff1a\u94a2\u7403\u4e0d\u6253\u5370\uff08no3dprint \u9009\u62e9\u96c6\u5df2\u9690\u85cf\uff09\u2192 \u5bfc\u51fa STL \u5207\u7247\uff1b\u88c5\u7403\uff1a\u51c6\u5907 \u00d8{dB} \u94a2\u7403 {N} \u9897\uff0c\u4ece\u88c5\u7403\u53e3 V \u5f62\u6ed1\u5165\u3002\u53c2\u6570\u5728\u6587\u6863\u5c5e\u6027 F3DToolSkills \u7ec4\uff0c\u6539\u540e\u91cd\u65b0\u6ce8\u5165\u672c\u811a\u672c\u5373\u53ef\u91cd\u5efa\u3002</div>
+</body></html>"""
+    out_dir = _os_m.path.join(_os_m.environ.get("TEMP", "/tmp"), "f3d_reports")
+    _os_m.makedirs(out_dir, exist_ok=True)
+    out = _os_m.path.join(out_dir, "bearing_report.html")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+    return out
+
+
 try:
     _result = main()
+    if isinstance(_result, dict) and "error" not in _result:
+        try:
+            _result["report_html"] = emit_report(_result)
+        except Exception as _re:
+            _result["report_html"] = "report-failed: " + str(_re)[:80]
 except Exception as e:
     _result = {"error": str(e), "tb": traceback.format_exc()}

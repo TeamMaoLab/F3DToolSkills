@@ -88,7 +88,10 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode "code@<skill>/scripts/gen_be
   原地改特征链极易留脏状态。
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
-- 输出看三块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）
+- 输出看四块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）、
+  **`report_html`（给用户的双击即看报告**：参数表+按实际参数绘制的剖面 SVG+步骤/验收表+
+  下一步指引，生成在 `%TEMP%\f3d_reports\bearing_report.html`——**agent 每次跑完必须把
+  这个路径告诉用户**，不用自己复述 JSON）
 - **只有 `verify.总结论 == "PASS ✓"` 才算成功**。steps 全 ok 但几何错的历史案例太多（见下）
 
 ## 验收纪律（不可妥协）
