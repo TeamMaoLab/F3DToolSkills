@@ -74,3 +74,8 @@
   不吃 ValueInput。
 - `CircularPatternFeatures.createInput` 入参要 **ObjectCollection**，Python list 必拒
   （与 MoveFeatures 同源；SelectionSets.add 则相反只要 list——三个 API 三种口味，别背错）。
+- `setDistanceExtent(isSymmetric, distance)` 的 distance 是 **ValueInput**（`createByReal`），
+  不是裸 float（3.14 实测）。
+- 两同心圆草图产生**两个 profile（内盘+圆环）**，`profiles.item(0)` 不保证是环——
+  按 bbox 半径==外径筛选（同前条：Profile 无 .area 用 bbox）。
+- 组件基准面是 `xYConstructionPlane`（不是 `xYPlane`）。

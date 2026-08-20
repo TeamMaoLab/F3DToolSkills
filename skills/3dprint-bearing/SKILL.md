@@ -34,6 +34,7 @@ description: >-
 | 资产 | 路径 | 用途 |
 |---|---|---|
 | 生成脚本 | `scripts/gen_bearing_full.py` | 一键全流程 + 强制验收，幂等 |
+| 演示生成器 | `scripts/gen_demo_bearing.py` | **无孔宿主/看效果用**：参数化演示轴承（改头部外参区即可），体积逐步对账+幂等，实测两轮 PASS |
 | 权威文档 | `reference/bearing_in_hole_workflow.md` | 配方表/球数公式/API 坑位全表——**改代码前必读第五、六点五节** |
 | 球径推演 | `reference/bearing_ball_sizes.md` | ⌀3→2.5→2.381 缩放规则、孔深/N 杠杆 |
 | 网页设计器 | `designer/bearing_designer.html` | 参数探索 + 3D 预览 + JSON 导出（浏览器直接打开） |
@@ -44,7 +45,8 @@ description: >-
 
 > ⚠ 写/改任何注入代码前，先查底座 `../f3dtoolskills/reference/api_pitfalls.md`
 > （ValueInput/createSphere/ObjectCollection 等坑都有正确写法，别靠报错试）。
-> 用户只是想"看个轴承效果"（无孔宿主）→ 不跑本 skill，另写独立演示脚本；
+> 用户只是想"看个轴承效果"（无孔宿主）→ 注入 `scripts/gen_demo_bearing.py`，
+> 只改头部【外参】区（孔径/环径/宽/球径），不要现写脚本；
 > 本 skill 只在满足输入契约（孔面在设计选择集）时运行。
 
 1. `curl -s --max-time 5 http://127.0.0.1:9099/ping` —— 不通则按底座 f3dtoolskills 的「安装规范」装/启动 add-in
