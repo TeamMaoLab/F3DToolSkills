@@ -39,6 +39,7 @@ description: >-
 | 球径推演 | `reference/bearing_ball_sizes.md` | ⌀3→2.5→2.381 缩放规则、孔深/N 杠杆 |
 | 网页设计器 | `designer/bearing_designer.html` | 参数探索 + 3D 预览 + JSON 导出（浏览器直接打开） |
 | 配方草图页 | `designer/bearing_sketch.html` | 三视图纯线稿 + 尺寸标注 |
+| 宿主示例 | `scripts/prep_host_demo.py` | 无宿主时造 ⌀24×4+⌀16 通孔宿主并把孔面入选择集（实测 PASS） |
 | 只读探针 | `scripts/inspect_selection.py`、`scripts/dump_features.py` | 看选集/时间线/面几何 |
 
 ## 前置检查（每次运行前）
@@ -50,8 +51,10 @@ description: >-
 > 本 skill 只在满足输入契约（孔面在设计选择集）时运行。
 
 1. `curl -s --max-time 5 http://127.0.0.1:9099/ping` —— 不通则按底座 f3dtoolskills 的「安装规范」装/启动 add-in
-2. Fusion 打开目标文档
-3. **孔面在设计选择集**里（不是 UI 选中——`/exec` 每次都会清掉 UI 选中）。契约：圆柱孔；
+2. Fusion 打开目标文档——**必须是装配型文档**（零件设计/直接建模文档不允许建组件，
+   gen_bearing_full 会报"零件设计文档只能包含一个零部件"；/exec 一行建新档：
+   `app.documents.add(c.DocumentTypes.FusionDesignDocumentType)`）
+3. **孔面在设计选择集**里（无宿主先跑 `scripts/prep_host_demo.py`）（不是 UI 选中——`/exec` 每次都会清掉 UI 选中）。契约：圆柱孔；
    孔深下限 = 球径+2·clr+1.1（窝上缘≥0.55 打印线，球 2.381/clr0.2 → ≥3.88，推荐 4）；
    孔半径 > ~5.2
 
