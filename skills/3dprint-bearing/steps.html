@@ -166,7 +166,6 @@ function renderAll(){const p=P(),d=derive(p);
 $('preset').onchange=e=>{const m={12:[6,4],16:[8,4],20:[10,4]}[e.target.value];$('Rh').value=m[0];$('Dh').value=m[1];renderAll();};
 ['Rh','Dh','ball','clr'].forEach(id=>$(id).oninput=renderAll);
 renderAll();
-</script></body></html>
 
 
 function drawS2(){
@@ -236,3 +235,5 @@ function drawS2(){
  ctx.beginPath();ctx.moveTo(X(0),H-pad.b+10);ctx.lineTo(X(d.R5),H-pad.b+10);ctx.stroke();
  ctx.textAlign='left';
 }
+
+</script></body></html>
