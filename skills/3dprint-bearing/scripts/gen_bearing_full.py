@@ -913,12 +913,19 @@ th{{background:#eef2f7}} .ok{{color:#1a9e55;font-weight:600}} .mono{{font-family
 <h2>\u9a8c\u6536</h2><table><tr><th>\u9879</th><th>\u5224\u5b9a</th><th>\u8bc1\u636e</th></tr>{ver_rows}</table>
 <div class="hint">\u4e0b\u4e00\u6b65\uff1a\u94a2\u7403\u4e0d\u6253\u5370\uff08no3dprint \u9009\u62e9\u96c6\u5df2\u9690\u85cf\uff09\u2192 \u5bfc\u51fa STL \u5207\u7247\uff1b\u88c5\u7403\uff1a\u51c6\u5907 \u00d8{dB} \u94a2\u7403 {N} \u9897\uff0c\u4ece\u88c5\u7403\u53e3 V \u5f62\u6ed1\u5165\u3002\u53c2\u6570\u5728\u6587\u6863\u5c5e\u6027 F3DToolSkills \u7ec4\uff0c\u6539\u540e\u91cd\u65b0\u6ce8\u5165\u672c\u811a\u672c\u5373\u53ef\u91cd\u5efa\u3002</div>
 </body></html>"""
-    out_dir = _os_m.path.join(_os_m.environ.get("TEMP", "/tmp"), "f3d_reports")
-    _os_m.makedirs(out_dir, exist_ok=True)
+    # 桌面优先（用户一眼可见、file:/// 链接可点），失败退回 TEMP
+    _home = _os_m.path.expanduser("~")
+    for _cand in (_os_m.path.join(_home, "Desktop"), _os_m.path.join(_home, "OneDrive", "Desktop")):
+        if _os_m.path.isdir(_cand):
+            out_dir = _cand
+            break
+    else:
+        out_dir = _os_m.path.join(_os_m.environ.get("TEMP", "/tmp"), "f3d_reports")
+        _os_m.makedirs(out_dir, exist_ok=True)
     out = _os_m.path.join(out_dir, "bearing_report.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
-    return out
+    return "file:///" + out.replace("\\", "/")
 
 
 try:
