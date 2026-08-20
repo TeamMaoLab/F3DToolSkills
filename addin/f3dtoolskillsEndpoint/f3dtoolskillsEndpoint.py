@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""F3DRemoteControl - Fusion 360 驻留型 add-in，开本地 HTTP 服务（线程安全版）。
+"""f3dtoolskillsEndpoint (F3DToolSkills) - Fusion 360 驻留型 add-in，开本地 HTTP 服务（线程安全版）。
 
 架构（解决 Fusion API 线程安全问题）：
   - HTTP 服务跑后台线程，只接请求
@@ -73,7 +73,7 @@ _server_thread = None
 _pending_tasks = []
 _pending_lock = threading.Lock()
 # 主线程调度：用 Fusion CustomEvent（notify 在主线程被调用）
-_CUSTOM_EVENT_ID = 'F3DRemoteControlMainTask'
+_CUSTOM_EVENT_ID = 'f3dtoolskillsEndpointMainTask'
 _custom_event = None
 _custom_handler = None
 
@@ -485,7 +485,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             # ---- 纯 Python 端点（不走队列，后台线程直接执行）----
             if path == '/ping':
-                self._json({'ok': True, 'msg': 'F3DRemoteControl 运行中',
+                self._json({'ok': True, 'msg': 'f3dtoolskillsEndpoint 运行中',
                             'python': sys.version.split()[0],
                             'thread_safe': True})
 
@@ -575,13 +575,13 @@ def run(context):
         _custom_event.add(_custom_handler)
         ips = _local_ips()
         urls = '\n'.join(f'  http://{ip}:{PORT}/ping' for ip in ips)
-        msg = (f'F3DRemoteControl 运行中 @ {HOST}:{PORT}\n'
+        msg = (f'f3dtoolskillsEndpoint 运行中 @ {HOST}:{PORT}\n'
                f'可达地址:\n{urls}\n'
                f'线程安全模式（CustomEvent 主线程调度）\n'
                f'脚本目录: {SCRIPT_DIRS}')
         ui.palettes.itemById('TextCommands').writeText(msg)
     except Exception:
-        ui.messageBox('F3DRemoteControl 启动失败:\n{}'.format(traceback.format_exc()))
+        ui.messageBox('f3dtoolskillsEndpoint 启动失败:\n{}'.format(traceback.format_exc()))
 
 
 def stop(context):

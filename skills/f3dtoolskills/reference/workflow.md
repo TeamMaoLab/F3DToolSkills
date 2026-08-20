@@ -6,7 +6,7 @@
 agent / shell（任意平台）
   │ curl http://127.0.0.1:9099/...        ← 端口 9099，add-in 内建 HTTPServer
   ▼
-F3DRemoteControl add-in（Fusion 主线程，Python 3.14）
+f3dtoolskillsEndpoint add-in（Fusion 主线程，Python 3.14）
   ├─ /ping           连通性 + Python 版本
   ├─ /reload         热重载 inf3d/common（改 add-in 主模块要 Stop→Run）
   ├─ /exec           注入任意代码，主线程执行（CustomEvent 队列）

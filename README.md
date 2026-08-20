@@ -1,4 +1,4 @@
-# F3DToolkit
+# F3DToolSkills
 
 > TeamMaoLab 出品 · 作者 maoge
 
@@ -17,7 +17,7 @@
    （SKILL.md + 注入脚本 + 设计器），不靠 add-in 多一个端点。底座永远不增重。
 4. **装我的前提是有 agent，所以 agent 就是安装器。** 没有 bootstrap 脚本、不要求本机
    Python——SKILL.md 里的安装规范就是给 agent 的行为指令。分发退化成一句话：
-   「帮我装 TeamMaoLab/F3DToolkit」。
+   「帮我装 TeamMaoLab/F3DToolSkills」。
 5. **特征成功 ≠ 几何正确，必须留下证据。** 一切生成必须读回几何证据（实体顶点/面型/
    面积/幂等重跑）才算交付。AI 时代 CAD 最危险的不是不会建，是「以为建对了」。
 6. **程序化 ≠ 不可回溯。** 机器建的模型也要人能读懂：草图全构造线、特征语义命名、
@@ -30,7 +30,7 @@
 
 ### 1. 底座自由可探索
 
-F3DToolkit 的最终能力只有一个：利用 Fusion 自带的 Python 环境，开启一个
+F3DToolSkills 的最终能力只有一个：利用 Fusion 自带的 Python 环境，开启一个
 **`/exec` 脚本注入端点**（本地 HTTP，端口 9099）。有了这个底座，AI agent 可以——
 
 - **探索**：任意一行 Python 即可探测 Fusion 的实时状态（文档/时间线/选中体/API 能力），
@@ -58,7 +58,7 @@ curl -G http://127.0.0.1:9099/exec \
 ├─────────────────────────────────────────────┤
 │  方法论层：API 坑位表 / 幂等构建 / 验收三关   │
 ├─────────────────────────────────────────────┤
-│  底座：F3DRemoteControl add-in               │
+│  底座：f3dtoolskillsEndpoint add-in               │
 │  Fusion Python 环境 + /exec 注入端点 (:9099) │
 └─────────────────────────────────────────────┘
 ```
@@ -68,11 +68,11 @@ curl -G http://127.0.0.1:9099/exec \
 
 ## 分发形态：一句话安装
 
-> **"帮我安装 GitHub 上的这个 Fusion AI 插件：TeamMaoLab/F3DToolkit"**
+> **"帮我安装 GitHub 上的这个 Fusion AI 插件：TeamMaoLab/F3DToolSkills"**
 
 就这一句，不需要任何命令。agent 收到后（ZCode/Claude 兼容 plugin，`.zcode-plugin/plugin.json`）：
 
-1. 从 Plugin Management（或直接 `git clone`）装上插件——底座 skill（`skills/f3dtoolkit/`）
+1. 从 Plugin Management（或直接 `git clone`）装上插件——底座 skill（`skills/f3dtoolskills/`）
    随插件就位，从此 Fusion 相关任务自动触发它；
 2. 底座 skill 里是一份 **agent 可直接执行的安装规范**（定位 AddIns 目录 → `cp` 复制
    add-in → curl 探活 → 引导用户在 ADD-INS 面板 Run）。不依赖用户本机 Python——
@@ -106,14 +106,14 @@ skills/<应用名>/
 
 | 路径 | 层 | 内容 |
 |---|---|---|
-| `addin/F3DRemoteControl/` | 底座 | 核心 add-in：`/ping` `/exec` `/reload`（零业务逻辑） |
-| `skills/f3dtoolkit/SKILL.md` | 方法论 | 给 agent 的探索工作流 + 工程纪律 |
-| `skills/f3dtoolkit/reference/api_pitfalls.md` | 方法论 | Fusion Python 3.14 API 坑位表（每条附正确写法） |
-| `skills/f3dtoolkit/reference/workflow.md` | 方法论 | 远程链路架构、坐标系三层结构、导出契约、调试 |
+| `addin/f3dtoolskillsEndpoint/` | 底座 | 核心 add-in：`/ping` `/exec` `/reload`（零业务逻辑） |
+| `skills/f3dtoolskills/SKILL.md` | 方法论 | 给 agent 的探索工作流 + 工程纪律 |
+| `skills/f3dtoolskills/reference/api_pitfalls.md` | 方法论 | Fusion Python 3.14 API 坑位表（每条附正确写法） |
+| `skills/f3dtoolskills/reference/workflow.md` | 方法论 | 远程链路架构、坐标系三层结构、导出契约、调试 |
 
 ## 快速开始
 
-对 agent 说「帮我安装 TeamMaoLab/F3DToolkit」，它会按底座 skill 的安装规范执行：
+对 agent 说「帮我安装 TeamMaoLab/F3DToolSkills」，它会按底座 skill 的安装规范执行：
 curl 探活 → 定位 AddIns 目录 → `cp` 复制 add-in → 引导你在 Fusion 的
 ADD-INS 面板 Run 一次（Fusion 不允许外部进程启动 add-in，这是唯一需要人手的一步）。
 **全程不依赖用户本机 Python。**

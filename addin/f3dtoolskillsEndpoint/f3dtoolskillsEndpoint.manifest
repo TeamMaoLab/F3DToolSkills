@@ -3,7 +3,7 @@
 	"type":	"addin",
 	"author":	"TeamMaoLab (author: maoge)",
 	"description":	{
-		"":	"F3D 远程控制：本地 HTTP 服务，外部可热重载代码/触发导出"
+		"":	"F3DToolSkills 底座：本地 HTTP exec 注入端点（端口 9099），AI agent 的 Fusion 通道"
 	},
 	"version":	"1.0",
 	"supportedOS":	"windows|mac",

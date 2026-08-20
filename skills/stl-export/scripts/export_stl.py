@@ -1,9 +1,9 @@
-# F3DToolkit 示例应用：导出当前文档全部可见 occurrence 的 STL
+# F3DToolSkills 示例应用：导出当前文档全部可见 occurrence 的 STL
 #
 # 用法（在仓库根目录）：
 #   curl -G http://127.0.0.1:9099/exec --data-urlencode "code@examples/export_stl.py"
 #
-# 契约（F3DToolkit 应用的标准写法）：
+# 契约（F3DToolSkills 应用的标准写法）：
 #   - 结果放 _result 变量（/exec 只回传它）
 #   - 自包含：不依赖 /exec 持久命名空间里的任何残留变量
 #   - 幂等：重复运行只是覆盖同样的输出文件
@@ -20,7 +20,7 @@ import adsk.fusion
 _app_ex = adsk.core.Application.get()
 _des_ex = _app_ex.activeDocument.design
 _exp_ex = _app_ex.activeDocument.products.itemByProductType("DesignProductType").exportManager
-_out_ex = os.path.join(tempfile.gettempdir(), "f3dtoolkit_exports")
+_out_ex = os.path.join(tempfile.gettempdir(), "f3dtoolskills_exports")
 os.makedirs(_out_ex, exist_ok=True)
 
 _exported_ex = []

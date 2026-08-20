@@ -1,8 +1,8 @@
 {
-  "name": "f3dtoolkit",
+  "name": "f3dtoolskills",
   "version": "0.1.0",
-  "title": "F3DToolkit",
-  "description": "F3DToolkit 工具箱 —— Fusion 360 远程参数化建模：F3DRemoteControl add-in（HTTP /exec）+ 自举安装器 + Python 3.14 API 坑位表 + 幂等验收方法论",
+  "title": "F3DToolSkills",
+  "description": "F3DToolSkills 工具箱 —— Fusion 360 远程参数化建模：f3dtoolskillsEndpoint add-in（HTTP /exec）+ 自举安装器 + Python 3.14 API 坑位表 + 幂等验收方法论",
   "author": {
     "name": "maoge",
     "url": "https://github.com/TeamMaoLab"
@@ -16,7 +16,7 @@
     "stl-export",
     "toolkit"
   ],
-  "homepage": "https://github.com/TeamMaoLab/F3DToolkit",
+  "homepage": "https://github.com/TeamMaoLab/F3DToolSkills",
   "license": "MIT",
   "skills": "skills"
 }
