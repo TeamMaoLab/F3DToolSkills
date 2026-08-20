@@ -4,29 +4,29 @@
 :root{--bg:#f6f7f9;--card:#fff;--fg:#1c2128;--sub:#5a6472;--line:#e3e6ea;--acc:#3b82f6;--ok:#16a34a}
 html.dark{--bg:#111418;--card:#1a1f26;--fg:#e6e9ee;--sub:#8b94a1;--line:#2a313a;--acc:#60a5fa;--ok:#4ade80}
 *{box-sizing:border-box}body{margin:0;font:14px/1.7 system-ui,'Segoe UI','Microsoft YaHei';background:var(--bg);color:var(--fg)}
-.wrap{max-width:900px;margin:0 auto;padding:28px 18px}
+.wrap{max-width:920px;margin:0 auto;padding:28px 18px}
 h1{font-size:18px;margin:0 0 4px}.sub{color:var(--sub);font-size:13px;margin-bottom:16px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:14px}
 h2{font-size:14px;margin:0 0 10px;color:var(--sub)}
-.controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.controls{display:flex;gap:14px;flex-wrap:wrap;align-items:end}
 .ctl{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--sub)}
 .ctl select,.ctl input{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:13px Consolas,monospace;width:110px}
 table{border-collapse:collapse;width:100%;font-size:13px}
 td,th{border:1px solid var(--line);padding:4px 10px;text-align:left}th{color:var(--sub);font-weight:600}
 .mono{font-family:Consolas,monospace;color:var(--sub)}.val{font-family:Consolas,monospace;font-weight:600;color:var(--acc)}
 .tag{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;border-radius:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700}
-.step-head{display:flex;align-items:center;gap:10px;padding:8px 8px;font-weight:600}
+.head{display:flex;align-items:center;gap:10px;font-weight:600;margin-bottom:4px}
+svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;width:100%;height:auto;display:block}
+.note{color:var(--sub);font-size:12.5px;margin:6px 0 0}
+.v{font-size:12.5px;color:var(--ok);border-left:3px solid var(--ok);padding:3px 10px;border-radius:0 6px 6px 0;margin:10px 0 0}
+#warn{color:#d97706}
+.step-head{display:flex;align-items:center;gap:10px;padding:6px 8px;font-weight:600}
 .branch{margin-left:24px;padding-left:18px;border-left:2px solid var(--line)}
 .sub-step{position:relative;padding:3px 0 3px 16px;margin-left:22px;font-size:13.5px}
 .sub-step::before{content:'';position:absolute;left:0;top:13px;width:12px;border-top:2px solid var(--line)}
-.v{font-size:12.5px;color:var(--ok);border-left:3px solid var(--ok);padding:3px 10px;border-radius:0 6px 6px 0;margin:6px 0}
-svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;width:100%;max-width:560px;height:auto}
-.scene-holder{margin:8px 0 6px 52px}
-.note{color:var(--sub);font-size:12.5px;margin:4px 0 10px 52px}
-.step-body{margin:6px 0 14px}
 </style></head><body><div class="wrap">
 <h1>3D 打印轴承 · 活的构建手册</h1>
-<div class="sub">改参数/选预设 → 全部草图与派生值实时重算 ｜ 公式与 gen_bearing_full.py 同源</div>
+<div class="sub">两张活图：S2 关键截面草图（Fusion 同款）与 S8 成品剖切 ｜ 改参数/选预设实时重算重画</div>
 
 <div class="panel"><h2>参数（实时生效）</h2>
 <div class="controls">
@@ -39,104 +39,148 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="ctl">窝间隙 clr<select id="clr"><option value="0.2">0.2 (FDM)</option><option value="0.1">0.1 (FDM紧)</option><option value="0.05">0.05 (光固化)</option></select></div>
 </div>
 <div style="margin-top:12px"><table id="derived"></table></div>
-<div class="note" id="warn" style="color:#d97706"></div>
+<div class="note" id="warn"></div>
 </div>
 
-<div class="panel"><div class="step-head"><span class="tag">S2</span>关键草图 · 闭环截面（半剖，x=半径）</div>
-<div class="scene-holder"><svg class="scene" id="sk2" viewBox="0 0 0 0"></svg></div>
-<div class="note">蓝=三闭环剖面轮廓（内盘/中环带球道凹口/外环）· 绿虚线=球窝刀圆 · 顶部虚线=旋转轴 r=0</div>
-<div class="v">验收：profile 数 in=1、ring=1、out=1</div></div>
+<div class="panel">
+<div class="head"><span class="tag">S2</span>关键截面草图（Fusion 同款 · 三闭环 + r=0 轴线 · 工程标注）</div>
+<svg class="scene" id="sk2" viewBox="0 0 0 0"></svg>
+<div class="note">蓝=内盘闭环（含球道凹口弧 r<sub>g</sub>）· 青=中环闭环 · 紫=外环闭环 · 点划线=中心线（r=0 旋转轴 / R_track 球心圆 / z<sub>B</sub>）· 尺寸单位 mm</div>
+<div class="v">验收：profile 数 in=1、ring=1、out=1</div>
+</div>
 
-<div class="panel"><div class="step-head"><span class="tag">S4+S5</span>球窝切割 + 装球口 V 形凸雕</div>
-<div class="scene-holder"><svg class="scene" id="sk4" viewBox="0 0 0 0"></svg></div>
-<div class="note">中环被 rg 刀圆掏窝（窝心 z=D_h/2）· 橙楔=V 口（钢球入口，开 +Y 侧）</div>
-<div class="v">验收：窝面型 Torus 真弧 ×N；凹陷方向 质心径向 &lt; R3</div></div>
-
-<div class="panel"><div class="step-head"><span class="tag">S6+S7</span>放球（⌀D_b × N 颗）+ 口棱圆角</div>
-<div class="scene-holder"><svg class="scene" id="sk6" viewBox="0 0 0 0"></svg></div>
-<div class="note">蓝球骑 R_track、球心严格共面 · 圆角 r1 倒窝口两棱（每球位 2 条）</div>
-<div class="v">验收：球心共面 z=D_h/2；圆角面积 1.192×2/球位</div></div>
-
-<div class="panel"><div class="step-head"><span class="tag">S8+S9</span>宿主融合 + 成品</div>
-<div class="scene-holder"><svg class="scene" id="sk8" viewBox="0 0 0 0"></svg></div>
-<div class="note">灰=宿主（外环已融入）· 钢球不打印（no3dprint 一键隐藏）</div>
-<div class="v">验收：宿主 Torus ×1；verify 总结论 PASS ✓</div></div>
+<div class="panel">
+<div class="head"><span class="tag">S8</span>成品剖切（S3–S7 完成后 · 旋转建模半剖视）</div>
+<svg class="scene" id="sk8" viewBox="0 0 0 0"></svg>
+<div class="note">剖面线=切到材料：内盘(球道槽=连续 Torus) / 中环(⌀窝×N 球形窝+V 口) / 外环已融入宿主 · 蓝实心=钢球 ×N（不打印）· 灰=宿主</div>
+<div class="v">验收：内盘 Torus×1 · 中环 Sphere×N · 球心共面 z=D_h/2 · verify PASS ✓</div>
+</div>
 
 <div class="panel"><h2>全流程树（S0–S9）</h2>
 <div class="step-head"><span class="tag">S0</span>输入与配方派生</div>
 <div class="branch"><div class="sub-step">读设计选择集圆柱孔面（无则自愈：删旧组件反推孔签名）</div>
-<div class="sub-step">反读基准系：轴 u / 孔口 A0 / R_h / D_h</div>
-<div class="sub-step">文档属性参数覆盖 → 派生值即上表</div></div>
+<div class="sub-step">反读基准系：轴 u / 孔口 A0 / R_h / D_h · 文档属性参数覆盖</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S1</span>过轴平面</div>
 <div class="branch"><div class="sub-step">按孔轴建过轴构造基准面（按名复用）· 验收：法向 ⊥ 孔轴</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S3</span>旋转三体</div>
-<div class="branch"><div class="sub-step">三剖面 revolve → 内盘/中环/外环（3 参 createInput+.operation）· 验收：体积=理论值</div></div>
+<div class="branch"><div class="sub-step">三闭环 revolve → 内盘/中环/外环（3 参 createInput+.operation）· 验收：体积=理论值</div></div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S4</span>球窝切割</div>
+<div class="branch"><div class="sub-step">球刀 tempBrep(r=r<sub>g</sub>) → 阵列 ×N → 一次 Cut · 内盘被 N 刀重叠成连续 Torus 球道，中环成 N 个球形窝</div>
+<div class="sub-step">验收：窝面 Torus/Sphere 真弧 ×N</div></div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S5</span>装球口 V 形凸雕</div>
+<div class="branch"><div class="sub-step">三点式切平面 → 楔草图 → 凹陷凸雕（+Y 侧）· 验收：质心径向 &lt; R3</div></div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S6+S7</span>放球 + 口棱圆角</div>
+<div class="branch"><div class="sub-step">tempBrep 球 ×N（root 视图入 no3dprint）· 圆角边=凹面∩窝面交界每球位 2 条 · 面积 1.192×2/位</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S9</span>整理与验收</div>
-<div class="branch"><div class="sub-step">球自然序重命名（球01…）· 脚手架收起 · no3dprint 选择集（root 视图）</div>
-<div class="sub-step">verify 汇总 → <a href="/report" style="color:var(--acc)">HTML 报告 /report</a> · 幂等重跑两轮一致</div></div>
+<div class="branch"><div class="sub-step">球自然序重命名 · 脚手架收起 · verify 汇总 → <a href="/report" style="color:var(--acc)">HTML 报告 /report</a> · 幂等重跑两轮一致</div></div>
 </div>
-
 <div class="sub">TeamMaoLab · F3DToolSkills · skills/3dprint-bearing</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
-const P=()=>({Rh:+$('Rh').value||8,Dh:+$('Dh').value||4,db:+$('ball').value,clr:+$('clr').value,
-  delta:0.8,tring:1.0,twall:2.0});
-function derive(p){const rg=p.db/2+p.clr, Rt=p.Rh-p.delta-p.twall,
-  R1=Rt-p.delta, R2=R1+0.3, R3=Rt+0.5, R4=R3+0.3, R5=p.Rh, zB=p.Dh/2;
-  const slotW=p.Dh, g=0.5,c=0.3;
-  const thKou=2*Math.atan((slotW/2+g)/R3)*180/Math.PI;
-  const thWo=2*Math.asin(Math.min(1,Math.sqrt(Math.max(0,rg*rg-(p.delta-p.tring/2)**2))/R2))*180/Math.PI;
-  const thQiu=2*Math.asin(Math.min(1,(p.db+c)/(2*Rt)))*180/Math.PI;
-  const N=Math.max(3,Math.floor(360/Math.max(thKou,thWo,thQiu)));
-  return{rg,Rt,R1,R2,R3,R4,R5,zB,N,thKou,thWo,thQiu,hostR:p.Rh+4,
-    dhMin:p.db+2*p.clr+1.1};}
-function scene(svg,p,d,show){ // show:{inner,middle,groove,vslot,ball,outer,host,sketch}
-  const s=10, W=(d.hostR+3)*s, H=(p.Dh+3)*s, vb=`-8 -8 ${W+16} ${H+16}`;
-  svg.setAttribute('viewBox',vb); const C=getComputedStyle(document.documentElement).getPropertyValue;
-  const bg='var(--bg)';
-  let h='';
-  const X=r=>r*s, Y=z=>(p.Dh-z)*s; // 半剖：y 向上为 z
-  if(show.host)h+=`<rect x="${-10}" y="${Y(p.Dh)}" width="${X(d.hostR)+10}" height="${p.Dh*s}" fill="#d5dbe2" opacity=".9"/>`;
-  // 旋转轴
-  h+=`<line x1="-6" y1="-4" x2="${W}" y2="-4" stroke="#8b94a1" stroke-dasharray="3,3"/><text x="-6" y="-8" font-size="9" fill="#8b94a1">r=0 旋转轴</text>`;
-  if(show.inner){
-    h+= show.sketch
-      ? `<rect x="0" y="${Y(p.Dh)}" width="${X(d.R1)}" height="${p.Dh*s}" fill="none" stroke="#3b82f6" stroke-width="2"/>`
-      : `<rect x="0" y="${Y(p.Dh)}" width="${X(d.R1)}" height="${p.Dh*s}" fill="#9ad0a8"/>`;}
-  if(show.middle){
-    const st= show.sketch?'fill="none" stroke="#3b82f6" stroke-width="2"':'fill="#e8c98a"';
-    h+=`<rect x="${X(d.R2)}" y="${Y(p.Dh)}" width="${X(d.R3-d.R2)}" height="${p.Dh*s}" ${st}/>`;}
-  if(show.outer){
-    const st= show.sketch?'fill="none" stroke="#3b82f6" stroke-width="2"':'fill="#b9c4d0"';
-    h+=`<rect x="${X(d.R4)}" y="${Y(p.Dh)}" width="${X(d.R5-d.R4)}" height="${p.Dh*s}" ${st}/>`;}
-  // 球窝刀圆（凹口/已掏窝同形）
-  if(show.groove||show.ball)
-    h+= show.sketch
-      ? `<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="none" stroke="#16a34a" stroke-dasharray="4,3" stroke-width="1.6"/>`
-      : `<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="${bg}" stroke="#16a34a"/>`;
-  if(show.vslot){
-    const x0=X(d.R3),y0=Y(p.Dh),vw=X(p.Dh*0.5),vh=p.Dh*s/2;
-    h+=`<polygon points="${x0},${Y(d.zB)-vh/2} ${x0},${Y(d.zB)+vh/2} ${x0-vw},${Y(d.zB)}" fill="${show.sketch?'none':bg}" stroke="#d97706" stroke-width="1.6"/>`;}
-  if(show.ball)
-    h+=`<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${p.db/2*s}" fill="#4a90d9"/>`;
-  if(show.ball){ // N 颗标注
-    h+=`<text x="${X(d.Rt)+p.db/2*s+6}" y="${Y(d.zB)+4}" font-size="10" fill="#4a90d9">×${d.N} 颗均布</text>`;}
-  if(d.Rt){ // R_track 标注线
-    h+=`<line x1="${X(d.Rt)}" y1="${Y(p.Dh)-8}" x2="${X(d.Rt)}" y2="${Y(0)+8}" stroke="#8b94a1" stroke-dasharray="2,3"/>`;}
-  svg.innerHTML=h;}
-function renderAll(){
-  const p=P(),d=derive(p);
-  $('Rh').value=p.Rh; $('Dh').value=p.Dh;
-  scene($('sk2'),p,d,{sketch:1,inner:1,middle:1,outer:1,groove:1});
-  scene($('sk4'),p,d,{middle:1,groove:1,vslot:1});
-  scene($('sk6'),p,d,{inner:1,middle:1,groove:1,outer:1,ball:1});
-  scene($('sk8'),p,d,{host:1,inner:1,middle:1,groove:1,ball:1});
-  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
-  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
-  <tr><td>R1–R5</td><td class="mono">见手册</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
-  <tr><td>球数 N</td><td class="mono">⌊360/max(θ口${d.thKou.toFixed(0)}°,θ窝${d.thWo.toFixed(0)}°,θ球${d.thQiu.toFixed(0)}°)⌋</td><td class="val">${d.N}</td><td>孔深下限</td><td class="mono">球+2clr+1.1</td><td class="val">${d.dhMin.toFixed(2)}</td></tr>`;
-  $('warn').textContent = p.Dh<d.dhMin-0.05 ? `⚠ 孔深 ${p.Dh} < 配方下限 ${d.dhMin.toFixed(2)}（窝上缘<0.55 打印线），实际构建会被拒绝` : '';}
+const P=()=>({Rh:+$('Rh').value||8,Dh:+$('Dh').value||4,db:+$('ball').value,clr:+$('clr').value,delta:0.8,tring:1.0,twall:2.0});
+function derive(p){const rg=p.db/2+p.clr,Rt=p.Rh-p.delta-p.twall,R1=Rt-p.delta,R2=R1+.3,R3=Rt+.5,R4=R3+.3,R5=p.Rh,zB=p.Dh/2;
+ const g=.5,c=.3,sw=p.Dh;
+ const thK=2*Math.atan((sw/2+g)/R3)*180/Math.PI,
+ thW=2*Math.asin(Math.min(1,Math.sqrt(Math.max(0,rg*rg-(p.delta-p.tring/2)**2))/R2))*180/Math.PI,
+ thQ=2*Math.asin(Math.min(1,(p.db+c)/(2*Rt)))*180/Math.PI,
+ N=Math.max(3,Math.floor(360/Math.max(thK,thW,thQ)));
+ return{rg,Rt,R1,R2,R3,R4,R5,zB,N,thK,thW,thQ,hostR:p.Rh+4,dhMin:p.db+2*p.clr+1.1};}
+
+const AR='<path d="M0,0 L6,2 L0,4 z" class="ar"/>';
+const CSS=`
+.lin{fill:none;stroke:#3b82f6;stroke-width:1.6}
+.lin2{fill:none;stroke:#0e9494;stroke-width:1.6}
+.lin3{fill:none;stroke:#8b5cf6;stroke-width:1.6}
+.cl{stroke:#e879f9;stroke-width:.9;stroke-dasharray:14,3,3,3;fill:none}
+.dim{stroke:#8b94a1;stroke-width:.8;fill:none}
+.dt{font:8.5px Consolas,monospace;fill:#8b94a1}
+.dt2{font:9px Consolas,monospace;fill:#e879f9;font-weight:600}
+.ar{fill:#8b94a1}
+.hA{fill:url(#hIn)} .hB{fill:url(#hMid)} .hC{fill:url(#hOut)} .hH{fill:url(#hHost)}`;
+
+function dimH(svg,x1,x2,y,label){svg.innerHTML+=`<g><line class="dim" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" marker-start="url(#m)" marker-end="url(#m)"/><line class="dim" x1="${x1}" y1="${y-4}" x2="${x1}" y2="${y+4}"/><line class="dim" x1="${x2}" y1="${y-4}" x2="${x2}" y2="${y+4}"/><text class="dt" x="${(x1+x2)/2}" y="${y-3}" text-anchor="middle">${label}</text></g>`;}
+function dimV(svg,y1,y2,x,label){svg.innerHTML+=`<g><line class="dim" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" marker-start="url(#m)" marker-end="url(#m)"/><line class="dim" x1="${x-4}" y1="${y1}" x2="${x+4}" y2="${y1}"/><line class="dim" x1="${x-4}" y1="${y2}" x2="${x+4}" y2="${y2}"/><text class="dt" x="${x+4}" y="${(y1+y2)/2+3}">${label}</text></g>`;}
+function tick(svg,x,y,label,dy){svg.innerHTML+=`<text class="dt" x="${x}" y="${y+(dy||6)}" text-anchor="middle" transform="rotate(-60 ${x} ${y+(dy||6)})">${label}</text>`;}
+
+function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘的球道凹口弧（刀圆 r=rg @Rt,zB 切进 0..R1 矩形）
+ const cx=Rt*s,cy=(Dh-zB)*s,r=rg*s,x=R1*s;
+ const dx=Math.sqrt(Math.max(0,r*r-(x-cx)*(x-cx))); // 圆与 x=R1 竖线交点
+ const y1=(Dh-zB)*s-dx,y2=(Dh-zB)*s+dx;
+ const a1=Math.atan2(y1-cy,x-cx),a2=Math.atan2(y2-cy,x-cx);
+ return {x,y1,y2,arc:`A ${r} ${r} 0 0 1 ${x} ${y2}`, // 从上交点沿圆到下交点（凹进去）
+  path:`M ${x} ${Dh*s} L ${x} ${y1} A ${r} ${r} 0 0 1 ${x} ${y2} L ${x} ${0}`};
+}
+function drawS2(){const p=P(),d=derive(p),s=26; // px per mm（大比例出细线）
+ const W=(d.hostR)*s+96, H=p.Dh*s+96, y0=64; // y0=材料顶(z=Dh)
+ $('sk2').setAttribute('viewBox',`0 0 ${W} ${H}`);
+ $('sk2').innerHTML=`<defs>
+ <marker id="m" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#8b94a1"/></marker>
+ <style>${CSS}</style></defs>`;
+ const svg=$('sk2');
+ const X=r=>28+r*s, Y=z=>y0+(p.Dh-z)*s;
+ // 中心线：r=0 旋转轴（横）+ Rt 球心圆（竖）+ zB（横，点划）
+ svg.innerHTML+=`<line class="cl" x1="6" y1="${Y(0)+6}" x2="${X(d.R5)+40}" y2="${Y(0)+6}"/>`;
+ svg.innerHTML+=`<text class="dt2" x="6" y="${Y(0)+16}">r=0 旋转轴</text>`;
+ svg.innerHTML+=`<line class="cl" x1="${X(d.Rt)}" y1="${Y(p.Dh)-14}" x2="${X(d.Rt)}" y2="${Y(0)+20}"/>`;
+ // 三闭环
+ const g=groovePath(d.R1,d.Rt,d.rg,d.zB,p.Dh,s);
+ // 内盘（含凹口弧）
+ svg.innerHTML+=`<path class="lin" d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} L ${X(0)} ${Y(p.Dh)} Z"/>`;
+ // 中环 / 外环
+ svg.innerHTML+=`<rect class="lin2" x="${X(d.R2)}" y="${Y(0)}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}"/>`;
+ svg.innerHTML+=`<rect class="lin3" x="${X(d.R4)}" y="${Y(0)}" width="${(d.R5-d.R4)*s}" height="${p.Dh*s}"/>`;
+ // 刀圆（构造虚线，未来球窝）
+ svg.innerHTML+=`<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="5,4"/>`;
+ // 尺寸：D_h 竖dim、R1..R5 轴向tick、rg、Rt
+ dimV(svg,Y(0),Y(p.Dh),X(0)-14,`D_h=${p.Dh.toFixed(1)}`);
+ dimV(svg,Y(d.zB)-d.rg*s/2,Y(d.zB)+d.rg*s/2,X(d.Rt)+d.rg*s+8,`r_g=${d.rg.toFixed(2)}`);
+ [[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>tick(svg,X(r),Y(0)+26,l+' '+r.toFixed(1)));
+ dimH(svg,X(d.Rt)-d.db/2*s,X(d.Rt)+d.db/2*s,Y(p.Dh)-18,`球⌀${p.db.toFixed(3)}`);
+ svg.innerHTML+=`<text class="dt2" x="${X(d.Rt)+5}" y="${Y(p.Dh)-24}">R_track=${d.Rt.toFixed(2)} z_B=${d.zB.toFixed(1)}</text>`;
+ svg.innerHTML+=`<text class="dt" x="${X(0)+4}" y="${Y(p.Dh)+14}">内盘闭环</text><text class="dt" x="${X(d.R2)}" y="${Y(p.Dh)+14}">中环闭环</text><text class="dt" x="${X(d.R4)}" y="${Y(p.Dh)+14}">外环闭环</text>`;
+}
+function drawS8(){const p=P(),d=derive(p),s=26;
+ const W=(d.hostR)*s+40, H=p.Dh*s+110, y0=64;
+ $('sk8').setAttribute('viewBox',`0 0 ${W} ${H}`);
+ $('sk8').innerHTML=`<defs>
+ <pattern id="hIn" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(122,199,146,.25)"/><line x1="0" y1="0" x2="0" y2="6" stroke="#3f8f5f" stroke-width="1.4"/></pattern>
+ <pattern id="hMid" width="6" height="6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(232,201,138,.22)"/><line x1="0" y1="0" x2="0" y2="6" stroke="#b58a2e" stroke-width="1.4"/></pattern>
+ <pattern id="hHost" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="rgba(150,160,172,.15)"/><line x1="0" y1="0" x2="0" y2="7" stroke="#8b94a1" stroke-width="1"/></pattern>
+ <clipPath id="clipMid"><rect x="${28+d.R2*s}" y="${y0}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}"/></clipPath>
+ <style>${CSS}</style></defs>`;
+ const svg=$('sk8');
+ const X=r=>28+r*s,Y=z=>y0+(p.Dh-z)*s;
+ // 宿主（外环区域=宿主材料，含剖面）
+ svg.innerHTML+=`<rect class="hH" x="${X(d.R4)}" y="${Y(0)}" width="${(d.hostR-d.R4)*s}" height="${p.Dh*s}"/>`;
+ svg.innerHTML+=`<rect x="${X(d.R4)}" y="${Y(0)}" width="${(d.hostR-d.R4)*s}" height="${p.Dh*s}" fill="none" stroke="#8b94a1"/>`;
+ // 内盘（球道槽=凹口）
+ const g=groovePath(d.R1,d.Rt,d.rg,d.zB,p.Dh,s);
+ svg.innerHTML+=`<path class="hA" d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} Z"/>`;
+ svg.innerHTML+=`<path d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} Z" fill="none" stroke="#3f8f5f"/>`;
+ // 中环（窝=刀圆在环内挖空 + V口）
+ const mid=`<g clip-path="url(#clipMid)"><rect class="hB" x="${X(d.R2)}" y="${Y(0)}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}"/>
+ <circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="var(--bg)"/>
+ <circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="none" stroke="#b58a2e" stroke-dasharray="none"/></g>`;
+ svg.innerHTML+=mid;
+ svg.innerHTML+=`<rect x="${X(d.R2)}" y="${Y(0)}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}" fill="none" stroke="#b58a2e"/>`;
+ // V 口（中环外壁 +Y 侧）
+ const vx=X(d.R3),vy=Y(d.zB),vw=p.Dh*.5*s,vh=p.Dh*s/2.2;
+ svg.innerHTML+=`<polygon points="${vx},${vy-vh/2} ${vx},${vy+vh/2} ${vx-vw},${vy}" fill="var(--bg)" stroke="#d97706" stroke-width="1.4"/>`;
+ // 钢球
+ svg.innerHTML+=`<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${p.db/2*s}" fill="#4a90d9" stroke="#2563eb"/>`;
+ svg.innerHTML+=`<text x="6" y="${y0-10}" class="dt">球 ⌀${p.db.toFixed(3)} × ${d.N} 颗（⌀窝 r_g=${d.rg.toFixed(2)} 均布，图示 1 颗）</text>`;
+ svg.innerHTML+=`<line class="cl" x1="6" y1="${Y(0)+6}" x2="${X(d.hostR)+20}" y2="${Y(0)+6}"/>`;
+ [[d.R1,'内盘'],[d.R3,'中环'],[d.R5,'外环→宿主']].forEach(([r,l],i)=>svg.innerHTML+=`<text class="dt" x="${X(r)-30+i*8}" y="${Y(p.Dh)+16}">${l}</text>`);
+}
+function renderAll(){const p=P(),d=derive(p);
+ drawS2();drawS8();
+ $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
+ <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
+ <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
+ <tr><td>球数 N</td><td class="mono">⌊360/max(θ口${d.thK.toFixed(0)},θ窝${d.thW.toFixed(0)},θ球${d.thQ.toFixed(0)})⌋</td><td class="val">${d.N}</td><td>孔深下限</td><td class="mono">球+2clr+1.1</td><td class="val">${d.dhMin.toFixed(2)}</td></tr>`;
+ $('warn').textContent=p.Dh<d.dhMin-.05?`⚠ 孔深 ${p.Dh} < 配方下限 ${d.dhMin.toFixed(2)}（窝上缘<0.55 打印线），实际构建会被拒绝`:'';
+}
 $('preset').onchange=e=>{const m={12:[6,4],16:[8,4],20:[10,4]}[e.target.value];$('Rh').value=m[0];$('Dh').value=m[1];renderAll();};
 ['Rh','Dh','ball','clr'].forEach(id=>$(id).oninput=renderAll);
 renderAll();
