@@ -98,3 +98,10 @@
 - **圆角特征不可进阵列**：FILLET_NO_EDGE_FOUND（副本里引用边找不到对应）。圆角永远阵列后做。
 - 阵列副本的面拓扑类型会变（母窝 Sphere → 副本 Nurbs）——按面型选边/选面的逻辑在
   阵列副本上不可靠，用几何判据（顶点到刀圆距离等）。
+
+## 时间线特征归组（TimelineGroups，实测 2026-08-20）
+- 入口 `design.timeline.timelineGroups.add(startIndex, endIndex)`（时间线索引，非特征对象）。
+- **建组会吸收条目使后续索引位移**：多组要从后往前建（或建一组平移一次后续区间）。
+- 组内条目再访问 `timeline.item(i).entity` 会抛 "Associated feature is invalid"——扫描时间线要逐条 try。
+- combine/切割类特征进组可能报 InternalValidationError(dcFeature)——归组做 best-effort，失败跳过。
+- 组名可赋值（`g.name=...`）。

@@ -755,6 +755,51 @@ def main():
         steps["S7宿主融合"] = "FAIL " + str(e)[:150]
         verify["宿主融合"] = {"状态": "✗"}
 
+    # ============ S8.0 时间线特征归组（best-effort：组API对combine/pattern脆弱，失败不阻断） ============
+    try:
+        tl_ = des.timeline
+        for g_ in list(tl_.timelineGroups):   # 幂等：清旧组
+            try:
+                g_.deleteMe()
+            except Exception:
+                pass
+        tl_map_ = {}
+        for i_ in range(tl_.count):
+            try:
+                e_ = tl_.item(i_).entity
+                nm_ = getattr(e_, "name", "") if e_ else ""
+            except Exception:
+                continue                        # 组内/失效条目 entity 访问会抛，跳过
+            if nm_:
+                tl_map_.setdefault(nm_, []).append(i_)
+        names_ = [f_.name for f_ in comp.features]
+        plan_ = [
+            ("S1-S3 基准·草图·三体", [n_ for n_ in names_ if any(k_ in n_ for k_ in ("草图", "平面", "旋转", "参考"))]),
+            ("S4 球窝切割", [n_ for n_ in names_ if ("球窝" in n_ or "窝刀" in n_)]),
+            ("S5-S6 装球口·球·圆角", [n_ for n_ in names_ if any(k_ in n_ for k_ in ("凸雕", "阵列", "球", "圆角"))]),
+            ("S7 宿主融合", [n_ for n_ in names_ if "融合" in n_ or "移除实体" in n_]),
+        ]
+        ranges_ = []; used_ = set()
+        for gname_, feats_ in plan_:
+            idxs_ = sorted({i_ for n_ in feats_ if n_ in tl_map_ for i_ in tl_map_[n_] if i_ not in used_})
+            if idxs_:
+                used_.update(idxs_)
+                ranges_.append([gname_, idxs_[0], idxs_[-1]])
+        ok_ = 0
+        for gname_, a_, b_ in sorted(ranges_, key=lambda x: -x[1]):   # 从后往前：建组吸收条目致索引位移
+            try:
+                g_ = tl_.timelineGroups.add(a_, b_)
+                try:
+                    g_.name = gname_
+                except Exception:
+                    pass
+                ok_ += 1
+            except Exception:
+                pass                                              # combine/跨组件特征可能拒组，尽力而为
+        steps["S8.0 特征归组"] = "ok {}/{} 组".format(ok_, len(ranges_))
+    except Exception as e:
+        steps["S8.0 特征归组"] = "FAIL " + str(e)[:100]
+
     # ============ S8.1 命名与分组整理 ============
     try:
         # 球自然序重命名：球-⌀XX / 球-⌀XX (k) → 球01…球NN
