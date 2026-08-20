@@ -103,43 +103,58 @@ function dimH(svg,x1,x2,y,label){svg.innerHTML+=`<g><line class="dim" x1="${x1}"
 function dimV(svg,y1,y2,x,label){svg.innerHTML+=`<g><line class="dim" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" marker-start="url(#m)" marker-end="url(#m)"/><line class="dim" x1="${x-4}" y1="${y1}" x2="${x+4}" y2="${y1}"/><line class="dim" x1="${x-4}" y1="${y2}" x2="${x+4}" y2="${y2}"/><text class="dt" x="${x+4}" y="${(y1+y2)/2+3}">${label}</text></g>`;}
 function tick(svg,x,y,label,dy){svg.innerHTML+=`<text class="dt" x="${x}" y="${y+(dy||6)}" text-anchor="middle" transform="rotate(-60 ${x} ${y+(dy||6)})">${label}</text>`;}
 
-function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘的球道凹口弧（刀圆 r=rg @Rt,zB 切进 0..R1 矩形）
+function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘球道凹口：刀圆@Rt,zB 切进 r<R1 材料，采样多段线保证方向
  const cx=Rt*s,cy=(Dh-zB)*s,r=rg*s,x=R1*s;
- const dx=Math.sqrt(Math.max(0,r*r-(x-cx)*(x-cx))); // 圆与 x=R1 竖线交点
- const y1=(Dh-zB)*s-dx,y2=(Dh-zB)*s+dx;
- const a1=Math.atan2(y1-cy,x-cx),a2=Math.atan2(y2-cy,x-cx);
- return {x,y1,y2,arc:`A ${r} ${r} 0 0 1 ${x} ${y2}`, // 从上交点沿圆到下交点（凹进去）
-  path:`M ${x} ${Dh*s} L ${x} ${y1} A ${r} ${r} 0 0 1 ${x} ${y2} L ${x} ${0}`};
+ const dx=Math.sqrt(Math.max(0,r*r-(x-cx)*(x-cx)));
+ if(!(dx>0.5)) return {y1:Dh*s/3,y2:2*Dh*s/3,pts:''};
+ const aTop=Math.atan2(-(dx),x-cx), aBot=Math.atan2(dx,x-cx); // 屏幕坐标角
+ // 从上交点沿圆经最左点(cx-r)转到下交点：角从 aTop 递减到 aBot-2π? 逐点采样取 x 最小路径
+ let pts=[]; const N=28;
+ for(let i=0;i<=N;i++){const a=aTop+(aBot-aTop)*i/N; const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a); pts.push((i?'L':'')+px.toFixed(1)+','+py.toFixed(1));}
+ // 校验方向：路径中点 x 应 < x（凹进材料），否则反向
+ const midX=cx+r*Math.cos((aTop+aBot)/2);
+ if(midX>x){ // 走错侧：改走另一段（经 aTop-2π）
+   pts=[];const a2T=aTop-2*Math.PI;
+   for(let i=0;i<=N;i++){const a=a2T+(aBot-a2T)*i/N;const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);pts.push((i?'L':'')+px.toFixed(1)+','+py.toFixed(1));}
+ }
+ return {y1:cy-dx,y2:cy+dx,pts:pts.join(' ')};
 }
-function drawS2(){const p=P(),d=derive(p),s=26; // px per mm（大比例出细线）
- const W=(d.hostR)*s+96, H=p.Dh*s+96, y0=64; // y0=材料顶(z=Dh)
+
+function drawS2(){const p=P(),d=derive(p),s=26;
+ const X=r=>64+r*s, Y=z=>46+(p.Dh-z)*s;
+ const W=64+d.R5*s+30, H=46+p.Dh*s+78;
  $('sk2').setAttribute('viewBox',`0 0 ${W} ${H}`);
- $('sk2').innerHTML=`<defs>
- <marker id="m" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#8b94a1"/></marker>
- <style>${CSS}</style></defs>`;
+ $('sk2').innerHTML=`<defs><marker id="m" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#8b94a1"/></marker><style>${CSS}</style></defs>`;
  const svg=$('sk2');
- const X=r=>28+r*s, Y=z=>y0+(p.Dh-z)*s;
- // 中心线：r=0 旋转轴（横）+ Rt 球心圆（竖）+ zB（横，点划）
- svg.innerHTML+=`<line class="cl" x1="6" y1="${Y(0)+6}" x2="${X(d.R5)+40}" y2="${Y(0)+6}"/>`;
- svg.innerHTML+=`<text class="dt2" x="6" y="${Y(0)+16}">r=0 旋转轴</text>`;
- svg.innerHTML+=`<line class="cl" x1="${X(d.Rt)}" y1="${Y(p.Dh)-14}" x2="${X(d.Rt)}" y2="${Y(0)+20}"/>`;
- // 三闭环
  const g=groovePath(d.R1,d.Rt,d.rg,d.zB,p.Dh,s);
- // 内盘（含凹口弧）
- svg.innerHTML+=`<path class="lin" d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} L ${X(0)} ${Y(p.Dh)} Z"/>`;
- // 中环 / 外环
+ // 三闭环
+ svg.innerHTML+=`<path class="lin" d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1.toFixed(1)} ${g.pts} L ${X(d.R1)} ${g.y2.toFixed(1)} L ${X(d.R1)} ${Y(p.Dh)} L ${X(0)} ${Y(p.Dh)} Z"/>`;
  svg.innerHTML+=`<rect class="lin2" x="${X(d.R2)}" y="${Y(0)}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}"/>`;
  svg.innerHTML+=`<rect class="lin3" x="${X(d.R4)}" y="${Y(0)}" width="${(d.R5-d.R4)*s}" height="${p.Dh*s}"/>`;
- // 刀圆（构造虚线，未来球窝）
+ // 构造刀圆
  svg.innerHTML+=`<circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="5,4"/>`;
- // 尺寸：D_h 竖dim、R1..R5 轴向tick、rg、Rt
- dimV(svg,Y(0),Y(p.Dh),X(0)-14,`D_h=${p.Dh.toFixed(1)}`);
- dimV(svg,Y(d.zB)-d.rg*s/2,Y(d.zB)+d.rg*s/2,X(d.Rt)+d.rg*s+8,`r_g=${d.rg.toFixed(2)}`);
- [[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>tick(svg,X(r),Y(0)+26,l+' '+r.toFixed(1)));
- dimH(svg,X(d.Rt)-d.db/2*s,X(d.Rt)+d.db/2*s,Y(p.Dh)-18,`球⌀${p.db.toFixed(3)}`);
- svg.innerHTML+=`<text class="dt2" x="${X(d.Rt)+5}" y="${Y(p.Dh)-24}">R_track=${d.Rt.toFixed(2)} z_B=${d.zB.toFixed(1)}</text>`;
- svg.innerHTML+=`<text class="dt" x="${X(0)+4}" y="${Y(p.Dh)+14}">内盘闭环</text><text class="dt" x="${X(d.R2)}" y="${Y(p.Dh)+14}">中环闭环</text><text class="dt" x="${X(d.R4)}" y="${Y(p.Dh)+14}">外环闭环</text>`;
+ // 中心线（点划）
+ svg.innerHTML+=`<line class="cl" x1="8" y1="${Y(0)+10}" x2="${X(d.R5)+22}" y2="${Y(0)+10}"/>`;
+ svg.innerHTML+=`<line class="cl" x1="${X(d.Rt)}" y1="${Y(p.Dh)-12}" x2="${X(d.Rt)}" y2="${Y(0)+22}"/>`;
+ svg.innerHTML+=`<text class="dt2" x="8" y="${Y(0)+20}">r=0</text>`;
+ svg.innerHTML+=`<text class="dt2" x="${X(d.Rt)+4}" y="${Y(p.Dh)-16}">R_track=${d.Rt.toFixed(2)}  z_B=${d.zB.toFixed(1)}</text>`;
+ // D_h 竖尺寸（左侧车道）
+ dimV(svg,Y(0),Y(p.Dh),X(0)-16,`D_h=${p.Dh.toFixed(1)}`);
+ // r_g 引出线（右上）
+ const rgx=X(d.Rt)+d.rg*s*.707, rgy=Y(d.zB)-d.rg*s*.707;
+ svg.innerHTML+=`<line class="dim" x1="${rgx}" y1="${rgy}" x2="${rgx+18}" y2="${rgy-14}"/><text class="dt" x="${rgx+20}" y="${rgy-15}">r_g=${d.rg.toFixed(2)}</text>`;
+ // 闭环名（引出到顶部，避开图形）
+ svg.innerHTML+=`<line class="dim" x1="${X(d.R1*.55)}" y1="${Y(p.Dh)}" x2="${X(d.R1*.55)}" y2="${Y(p.Dh)-10}"/><text class="dt" x="${X(d.R1*.55)-14}" y="${Y(p.Dh)-13}">内盘</text>`;
+ svg.innerHTML+=`<line class="dim" x1="${X((d.R2+d.R3)/2)}" y1="${Y(p.Dh)}" x2="${X((d.R2+d.R3)/2)+8}" y2="${Y(p.Dh)-8}"/><text class="dt" x="${X((d.R2+d.R3)/2)+10}" y="${Y(p.Dh)-9}">中环</text>`;
+ svg.innerHTML+=`<text class="dt" x="${X(d.R4)}" y="${Y(p.Dh)-9}">外环</text>`;
+ // R 刻度尺（轴下方两行错开）
+ const yr=Y(0)+34;
+ svg.innerHTML+=`<line class="dim" x1="${X(0)}" y1="${yr}" x2="${X(d.R5)}" y2="${yr}"/>`;
+ [[d.R1,'R1',0],[d.R2,'R2',1],[d.R3,'R3',0],[d.R4,'R4',1],[d.R5,'R5',0]].forEach(([r,l,row])=>{
+  svg.innerHTML+=`<line class="dim" x1="${X(r)}" y1="${yr-4}" x2="${X(r)}" y2="${Y(0)+16}"/><text class="dt" x="${X(r)}" y="${yr+13+row*12}" text-anchor="middle">${l}=${r.toFixed(1)}</text>`;});
+ svg.innerHTML+=`<text class="dt" x="${X(0)}" y="${yr+13}" text-anchor="middle">0</text>`;
 }
+
 function drawS8(){const p=P(),d=derive(p),s=26;
  const W=(d.hostR)*s+40, H=p.Dh*s+110, y0=64;
  $('sk8').setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -156,8 +171,9 @@ function drawS8(){const p=P(),d=derive(p),s=26;
  svg.innerHTML+=`<rect x="${X(d.R4)}" y="${Y(0)}" width="${(d.hostR-d.R4)*s}" height="${p.Dh*s}" fill="none" stroke="#8b94a1"/>`;
  // 内盘（球道槽=凹口）
  const g=groovePath(d.R1,d.Rt,d.rg,d.zB,p.Dh,s);
- svg.innerHTML+=`<path class="hA" d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} Z"/>`;
- svg.innerHTML+=`<path d="M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1} A ${d.rg*s} ${d.rg*s} 0 0 1 ${X(d.R1)} ${g.y2} L ${X(d.R1)} ${Y(p.Dh)} Z" fill="none" stroke="#3f8f5f"/>`;
+ const inPath=`M ${X(0)} ${Y(0)} L ${X(d.R1)} ${Y(0)} L ${X(d.R1)} ${g.y1.toFixed(1)} ${g.pts} L ${X(d.R1)} ${g.y2.toFixed(1)} L ${X(d.R1)} ${Y(p.Dh)} Z`;
+ svg.innerHTML+=`<path class="hA" d="${inPath}"/>`;
+ svg.innerHTML+=`<path d="${inPath}" fill="none" stroke="#3f8f5f"/>`;
  // 中环（窝=刀圆在环内挖空 + V口）
  const mid=`<g clip-path="url(#clipMid)"><rect class="hB" x="${X(d.R2)}" y="${Y(0)}" width="${(d.R3-d.R2)*s}" height="${p.Dh*s}"/>
  <circle cx="${X(d.Rt)}" cy="${Y(d.zB)}" r="${d.rg*s}" fill="var(--bg)"/>
