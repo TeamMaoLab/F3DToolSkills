@@ -248,7 +248,7 @@ function drawS2(){
     const cx=X(c.c[0]),cy=Y(-c.c[1]),r=c.r*sc;
     const ang=q=>-Math.atan2(q[1]-c.c[1],q[0]-c.c[0]);
     const a0=ang(c.a);let a1=ang(c.b);
-    const midT=-((c.mid||180)*Math.PI/180);
+    const midT=-((c.mid!==undefined?c.mid:180)*Math.PI/180);
     let delta=(a1-a0)%TAU;if(delta<0)delta+=TAU;
     const near=(x)=>{let v=((x-midT)%TAU+TAU)%TAU;return Math.min(v,TAU-v);};
     if(near(a0-delta/2)<near(a0+delta/2))delta-=TAU;
