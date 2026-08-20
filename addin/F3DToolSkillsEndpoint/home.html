@@ -9,7 +9,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 h1{font-size:18px;margin:0;display:flex;align-items:center;gap:10px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:p 2s infinite}
 @keyframes p{50%{opacity:.5}}
-.theme{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:5px 12px;font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .k{color:var(--sub);font-size:12px} .v{font-size:15px;font-weight:600;margin-top:2px}
@@ -22,8 +21,7 @@ button{cursor:pointer;border:0;border-radius:8px;padding:8px 16px;font-size:13px
 pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.5 Consolas,monospace;overflow:auto;max-height:240px;white-space:pre-wrap}
 a{color:var(--acc);text-decoration:none} .hint{color:var(--sub);font-size:12px}
 </style></head><body><div class="wrap">
-<header><h1><span class="dot"></span>F3DToolSkills Endpoint</h1>
-<button class="theme" onclick="tg()">🌙 / ☀️</button></header>
+<header><h1><span class="dot"></span>F3DToolSkills Endpoint</h1></header>
 <div class="grid">
 <div class="card"><div class="k">Fusion</div><div class="v" id="v-fusion">…</div></div>
 <div class="card"><div class="k">Python</div><div class="v" id="v-py">…</div></div>
@@ -42,9 +40,10 @@ _result = c.Application.get().activeDocument.name</textarea>
 <div class="hint">TeamMaoLab · <a href="https://github.com/TeamMaoLab/F3DToolSkills" target="_blank">GitHub</a> · 本服务只绑定本机回环，勿转发公网</div>
 </div>
 <script>
-const d=document.documentElement,ls=localStorage;
-if(ls.theme==='dark'||(!ls.theme&&matchMedia('(prefers-color-scheme: dark)').matches))d.classList.add('dark');
-function tg(){d.classList.toggle('dark');ls.theme=d.classList.contains('dark')?'dark':'light'}
+// 主题自动跟随系统，实时响应系统切换
+const d=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)');
+const sync=()=>d.classList.toggle('dark',mq.matches);
+sync();mq.addEventListener('change',sync);
 fetch('/ping').then(r=>r.json()).then(j=>{document.getElementById('v-py').textContent='Python '+j.python});
 fetch('/exec?code='+encodeURIComponent('import adsk.core as c;a=c.Application.get();_result=(a.activeDocument.name)'))
  .then(r=>r.json()).then(j=>{document.getElementById('v-doc').textContent=j.result||'—'});
