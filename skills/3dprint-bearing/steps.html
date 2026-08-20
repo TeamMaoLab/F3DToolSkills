@@ -178,11 +178,11 @@ function buildMakerModel(p,d){ // MakerJs 模型：真圆弧对象（DXF/链分�
  const P=M.paths;
  return {paths:{
   in1:L([0,0],[d.R1,0]), in2:L([d.R1,0],[d.R1,zB-off]), in3:L([d.R1,zB-off],[xa,zB-t]),
-  inA:A([xa,zB-t],[xa,zB+t]),
+  inA:A([xa,zB-t],[xa,zB+t],180),
   in4:L([xa,zB+t],[d.R1,zB+off]), in5:L([d.R1,zB+off],[d.R1,Dh]), in6:L([d.R1,Dh],[0,Dh]), in7:L([0,Dh],[0,0]),
   mid1:L([d.R2,0],[d.R3,0]), mid2:L([d.R3,0],[d.R3,Dh]), mid3:L([d.R3,Dh],[d.R2,Dh]), mid4:L([d.R2,Dh],[d.R2,0]),
   out1:L([d.R4,0],[d.R4,zB-off]), out2:L([d.R4,zB-off],[xb,zB-t]),
-  outA:A([xb,zB-t],[xb,zB+t]),
+  outA:A([xb,zB-t],[xb,zB+t],0),
   out3:L([xb,zB+t],[d.R4,zB+off]), out4:L([d.R4,zB+off],[d.R4,Dh]), out5:L([d.R4,Dh],[d.R5,Dh]), out6:L([d.R5,Dh],[d.R5,0]), out7:L([d.R5,0],[d.R4,0]),
   cutter:new M.paths.Arc([d.Rt,Y(zB)],d.rg,180,360), cutterL:L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB]),
   ball:new M.paths.Arc([d.Rt,Y(zB)],p.db/2,180,360), ballL:L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB]),
@@ -198,15 +198,15 @@ function exportDXF(){
 function modelCurves(p,d){ // 与 Fusion dump 完全同构的曲线表（y=-深度，mm）
  const t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
  const Y=z=>-z, L=(a,b)=>({t:'line',a:[a[0],Y(a[1])],b:[b[0],Y(b[1])]});
- const A=(aa,bb)=>({t:'arc',c:[d.Rt,Y(zB)],a:[aa[0],Y(aa[1])],b:[bb[0],Y(bb[1])],r:d.rg});
+ const A=(aa,bb,mid)=>({t:'arc',c:[d.Rt,Y(zB)],a:[aa[0],Y(aa[1])],b:[bb[0],Y(bb[1])],r:d.rg,mid:mid});
  return {
  '内盘闭环':[L([0,0],[d.R1,0]),L([d.R1,0],[d.R1,zB-off]),L([d.R1,zB-off],[xa,zB-t]),
-   A([xa,zB-t],[xa,zB+t]),L([xa,zB+t],[d.R1,zB+off]),L([d.R1,zB+off],[d.R1,Dh]),L([d.R1,Dh],[0,Dh]),L([0,Dh],[0,0])],
+   A([xa,zB-t],[xa,zB+t],180),L([xa,zB+t],[d.R1,zB+off]),L([d.R1,zB+off],[d.R1,Dh]),L([d.R1,Dh],[0,Dh]),L([0,Dh],[0,0])],
  '中环闭环':[L([d.R2,0],[d.R3,0]),L([d.R3,0],[d.R3,Dh]),L([d.R3,Dh],[d.R2,Dh]),L([d.R2,Dh],[d.R2,0])],
  '外环闭环':[L([d.R4,0],[d.R4,zB-off]),L([d.R4,zB-off],[xb,zB-t]),
-   A([xb,zB-t],[xb,zB+t]),L([xb,zB+t],[d.R4,zB+off]),L([d.R4,zB+off],[d.R4,Dh]),L([d.R4,Dh],[d.R5,Dh]),L([d.R5,Dh],[d.R5,0]),L([d.R5,0],[d.R4,0])],
- '球窝刀-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-d.rg,Y(zB)],b:[d.Rt+d.rg,Y(zB)],r:d.rg},L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB])],
- '球-⌀2.38-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-p.db/2,Y(zB)],b:[d.Rt+p.db/2,Y(zB)],r:p.db/2},L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB])]};
+   A([xb,zB-t],[xb,zB+t],0),L([xb,zB+t],[d.R4,zB+off]),L([d.R4,zB+off],[d.R4,Dh]),L([d.R4,Dh],[d.R5,Dh]),L([d.R5,Dh],[d.R5,0]),L([d.R5,0],[d.R4,0])],
+ '球窝刀-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-d.rg,Y(zB)],b:[d.Rt+d.rg,Y(zB)],r:d.rg,mid:270},L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB])],
+ '球-⌀2.38-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-p.db/2,Y(zB)],b:[d.Rt+p.db/2,Y(zB)],r:p.db/2,mid:270},L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB])]};
 }
 async function verifyVsFusion(){
  const el=$('sk2-verify');
@@ -235,67 +235,69 @@ async function verifyVsFusion(){
 }
 function drawS2(){
  const p=P(),d=derive(p),cv=$('sk2');
- const t=d.rg/Math.SQRT2, zB=d.zB, Dh=p.Dh;
- // 与 Fusion 同构的曲线生成（x=半径, z=深度向下）
- const off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t;
- const inner=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],'arcL',[d.R1,zB+off],[d.R1,Dh],[0,Dh]];
- const outer=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],'arcR',[d.R4,zB+off],[d.R4,Dh],[d.R5,Dh],[d.R5,0]];
+ const model=modelCurves(p,d);
+ const colors={'内盘闭环':'#3b82f6','中环闭环':'#0e9494','外环闭环':'#8b5cf6','球窝刀-草图':'#16a34a','球-⌀2.38-草图':'#2563eb'};
  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
- const pad={l:52,r:26,t:26,b:44}, sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.55)/(Dh+4));
- const H=Math.round(pad.t+pad.b+(Dh)*sc+20);
+ const pad={l:56,r:28,t:30,b:46};
+ const Dh=p.Dh;
+ const sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.5)/(Dh+3));
+ const H=Math.round(pad.t+pad.b+Dh*sc+10);
  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
  const dark=document.documentElement.classList.contains('dark');
- const X=r=>pad.l+r*sc, Y=z=>pad.t+(zB-z)*sc+ (H-pad.t-pad.b)/2 - Dh*sc/2 + Dh*sc/2; // z 从顶往下
- const Yz=z=>pad.t+((z)/(Dh))*(H-pad.t-pad.b);
- ctx.clearRect(0,0,W,H);
- // 1mm 网格
+ const X=r=>pad.l+r*sc, Y=z=>pad.t+z*sc; // z=深度向下（模型 y=-z）
+ // 网格
  ctx.strokeStyle=dark?'#1d232b':'#eef0f3';ctx.lineWidth=1;
- for(let r=0;r<=d.hostR;r++){ctx.beginPath();ctx.moveTo(X(r),pad.t-6);ctx.lineTo(X(r),H-pad.b+6);ctx.stroke();}
- for(let z=0;z<=Dh;z++){ctx.beginPath();ctx.moveTo(pad.l-8,Yz(z));ctx.lineTo(W-pad.r+8,Yz(z));ctx.stroke();}
- // 中心线：x=0 旋转轴（竖）、z=zB（横）、x=Rt（竖）
- ctx.strokeStyle='#e879f9';ctx.setLineDash([12,3,3,3]);
- ctx.beginPath();ctx.moveTo(X(0),pad.t-14);ctx.lineTo(X(0),H-pad.b+14);ctx.stroke();
- ctx.beginPath();ctx.moveTo(pad.l-14,Yz(zB));ctx.lineTo(W-pad.r+14,Yz(zB));ctx.stroke();
- ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-14);ctx.lineTo(X(d.Rt),H-pad.b+14);ctx.stroke();
+ for(let r=0;r<=d.R5;r++){ctx.beginPath();ctx.moveTo(X(r),pad.t-8);ctx.lineTo(X(r),H-pad.b+8);ctx.stroke();}
+ for(let z=0;z<=Math.ceil(Dh);z++){ctx.beginPath();ctx.moveTo(pad.l-10,Y(z));ctx.lineTo(W-pad.r+10,Y(z));ctx.stroke();}
+ // 中心线（点划）
+ ctx.strokeStyle='#e879f9';ctx.setLineDash([12,3,3,3]);ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(X(0),pad.t-16);ctx.lineTo(X(0),H-pad.b+16);ctx.stroke();      // r=0 旋转轴
+ ctx.beginPath();ctx.moveTo(pad.l-16,Y(d.zB));ctx.lineTo(W-pad.r+16,Y(d.zB));ctx.stroke(); // z_B
+ ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-16);ctx.lineTo(X(d.Rt),H-pad.b+16);ctx.stroke();// R_track
  ctx.setLineDash([]);
  ctx.fillStyle='#e879f9';ctx.font='10px Consolas,monospace';
- ctx.fillText('r=0 旋转轴',X(0)+4,pad.t-4);
- ctx.fillText('R_track='+d.Rt.toFixed(2),X(d.Rt)+4,pad.t-4);
- ctx.textAlign='right';ctx.fillText('z_B='+zB.toFixed(1),pad.l-6,Yz(zB)-4);ctx.textAlign='left';
- // 刀圆构造（绿虚线：圆+过心直径线）
- ctx.strokeStyle='#16a34a';ctx.lineWidth=1;ctx.setLineDash([6,4]);
- ctx.beginPath();ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,0,7);ctx.stroke();
- ctx.beginPath();ctx.moveTo(X(d.Rt-d.rg),Yz(zB));ctx.lineTo(X(d.Rt+d.rg),Yz(zB));ctx.stroke();
- ctx.setLineDash([]);
- // 三闭环
- function loop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
-  for(let i=1;i<pts.length;i++){const q=pts[i];
-   if(q[0]==='arcL'){ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*0.75,Math.PI*1.25,true);i++;ctx.moveTo(X(pts[i+0]===undefined?0:0),0);}
-  }
-  ctx.stroke();}
- // 用 path 直接写三段（arc 处理内嵌在序列里）
- function drawLoop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
-  ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
-  for(let i=1;i<pts.length;i++){const q=pts[i];
-   if(q==='arcL')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*1.25,Math.PI*.75,true); // 从上切点225°逆时针过180°到135°，与前置线段零跳变
-   else if(q==='arcR')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,-Math.PI/4,Math.PI/4,false);
-   else ctx.lineTo(X(q[0]),Yz(q[1]));}
-  ctx.closePath();ctx.stroke();}
- drawLoop(inner,'#3b82f6');
- drawLoop([[d.R2,0],[d.R3,0],[d.R3,Dh],[d.R2,Dh]],'#0e9494');
- drawLoop(outer,'#8b5cf6');
- // 球
- ctx.strokeStyle='#2563eb';ctx.lineWidth=2.4;
- ctx.beginPath();ctx.arc(X(d.Rt),Yz(zB),p.db/2*sc,0,7);ctx.stroke();
- ctx.beginPath();ctx.moveTo(X(d.Rt-p.db/2),Yz(zB));ctx.lineTo(X(d.Rt+p.db/2),Yz(zB));ctx.stroke();
- // R 刻度 + 名称
+ ctx.fillText('r=0 旋转轴',X(0)+4,pad.t-6);
+ ctx.fillText('R_track='+d.Rt.toFixed(2),X(d.Rt)+4,pad.t-6);
+ ctx.textAlign='right';ctx.fillText('z_B='+d.zB.toFixed(1),pad.l-8,Y(d.zB)-4);ctx.textAlign='left';
+ // 模型曲线渲染（唯一几何源：line 直连，arc 过 mid 中角采样）
+ const TAU=Math.PI*2;
+ function drawCurves(name,curves,col,dashed){
+  ctx.strokeStyle=col;ctx.lineWidth=name.startsWith('球-')?2.4:2;
+  ctx.setLineDash(dashed?[6,4]:[]);
+  for(const c of curves){
+   ctx.beginPath();
+   if(c.t==='line'){
+    ctx.moveTo(X(c.a[0]),Y(-c.a[1]));ctx.lineTo(X(c.b[0]),Y(-c.b[1]));
+   }else{
+    const cx=X(c.c[0]),cy=Y(-c.c[1]),r=c.r*sc;
+    let a0=Math.atan2(-( -c.a[1]-(-c.c[1])), c.a[0]-c.c[0]); // canvas 角（y 翻转）
+    // 直接算：模型 y-up 角 → canvas 角 = 取负
+    const ang=q=>-Math.atan2(q[1]-c.c[1],q[0]-c.c[0]);
+    a0=ang(c.a);let a1=ang(c.b);
+    const midT=-((c.mid||180)*Math.PI/180); // 目标中角（canvas 系）
+    let delta=(a1-a0)%TAU;if(delta<0)delta+=TAU;            // 正向
+    const midPos=a0+delta/2;
+    const diffP=Math.abs(((midPos-midT)%TAU+TAU)%TAU);const dp=Math.min(diffP,TAU-diffP);
+    const diffN=Math.abs((((a0-delta/2)-midT)%TAU+TAU)%TAU);const dn=Math.min(diffN,TAU-diffN);
+    if(dn<dp)delta-=TAU;                                      // 反向更贴近目标中角则反向
+    const N=32;
+    ctx.moveTo(cx+r*Math.cos(a0),cy+r*Math.sin(a0));
+    for(let i=1;i<=N;i++){const a=a0+delta*i/N;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+   }
+   ctx.stroke();}
+  ctx.setLineDash([]);}
+ // 层级：构造线垫底 → 三闭环 → 球最上（重叠曲线后画者赢）
+ const order=['球窝刀-草图','外环闭环','内盘闭环','中环闭环','球-⌀2.38-草图'];
+ for(const name of order){const dashed=name==='球窝刀-草图';drawCurves(name,model[name],colors[name]||'#888',dashed);}
+ // R 刻度尺
  ctx.fillStyle=dark?'#8b94a1':'#5a6472';ctx.font='10px Consolas,monospace';ctx.textAlign='center';
+ const yr=H-pad.b+22;
  [[0,'0'],[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>{
   ctx.strokeStyle=dark?'#8b94a1':'#5a6472';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(X(r),H-pad.b+6);ctx.lineTo(X(r),H-pad.b+14);ctx.stroke();
-  ctx.fillText(l+'='+r.toFixed(1),X(r),H-pad.b+26);});
- ctx.beginPath();ctx.moveTo(X(0),H-pad.b+10);ctx.lineTo(X(d.R5),H-pad.b+10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5);ctx.stroke();
+  ctx.fillText(l+'='+r.toFixed(1),X(r),yr+16);});
+ ctx.beginPath();ctx.moveTo(X(0),yr);ctx.lineTo(X(d.R5),yr);ctx.stroke();
  ctx.textAlign='left';
 }
 
