@@ -42,6 +42,18 @@ description: >-
 | 宿主示例 | `scripts/prep_host_demo.py` | 无宿主时造 ⌀24×4+⌀16 通孔宿主并把孔面入选择集（实测 PASS） |
 | 只读探针 | `scripts/inspect_selection.py`、`scripts/dump_features.py` | 看选集/时间线/面几何 |
 
+## 场景分流（agent 先判断，再动手）
+
+| 用户情境 | 判定 | 动作 |
+|---|---|---|
+| 有宿主，孔面已入设计选择集 | 真实构建 | 直接注入 gen_bearing_full.py |
+| 没有宿主 / 只想看效果 | 示例 | 先注入 prep_host_demo.py 造 ⌀24×4 示例宿主，再注入 gen_bearing_full.py |
+| 文档已有同签名轴承（改参/重跑） | 重建 | 直接重新注入（自愈自动清旧重建，无需选择集） |
+| 有宿主但孔面没入选择集 | 引导 | 让用户在 Fusion 里把目标孔面加入设计选择集（不是 UI 选中——/exec 会清 UI 选中），或 agent 注入一行 /exec 代放 |
+| 说了多个孔 | 批量 | 见「批量多孔」节，逐孔放选择集跑，禁止启发式猜 |
+
+**不确定时问用户，不要猜**：自愈在多组件并存时会拒绝猜测并要求显式选择集，agent 同样。
+
 ## 前置检查（每次运行前）
 
 > ⚠ 写/改任何注入代码前，先查底座 `../f3dtoolskills/reference/api_pitfalls.md`
