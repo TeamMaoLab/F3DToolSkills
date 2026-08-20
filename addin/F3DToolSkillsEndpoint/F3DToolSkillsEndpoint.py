@@ -465,6 +465,18 @@ def _do_brep_stats():
 
 # ============ 主页（自包含，亮暗双主题） ============
 
+def _load_home():
+    """外置 home.html 优先（改完浏览器刷新即生效），缺文件时用内嵌兜底。"""
+    import os as _o
+    here = _o.path.dirname(_o.path.abspath(__file__))
+    for cand in (_o.path.join(here, 'home.html'),):
+        try:
+            with open(cand, encoding='utf-8') as f:
+                return f.read()
+        except Exception:
+            pass
+    return _HOME_PAGE
+
 _HOME_PAGE = """<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>F3DToolSkills Endpoint</title><style>
@@ -521,6 +533,7 @@ o.style.display='block';o.textContent='执行中…';
 fetch('/exec?code='+encodeURIComponent(c)).then(r=>r.json())
  .then(j=>o.textContent=JSON.stringify(j,null,2)).catch(e=>o.textContent='错误: '+e)}
 </script></body></html>"""
+
 
 
 # ============ HTTP Handler ============
@@ -583,7 +596,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             # ---- 主页（插件控制面板）----
             if path == '/' or path == '/index.html':
-                _body = _HOME_PAGE.encode('utf-8')
+                _body = _load_home().encode('utf-8')
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Content-Length', str(len(_body)))
