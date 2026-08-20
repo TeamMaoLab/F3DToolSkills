@@ -109,8 +109,13 @@ N = ⌊360° / max(θ口, θ窝, θ球)⌋，下限 3
 - **组件签名含宿主**：`轴承-全-{宿主实体名}-⌀XX`（融合特征同名签名挂 root）。
   **签名只含孔径会在同径多孔时互相清杀**（实测踩坑），必须带宿主名
 - **球组子组件**：球统一放轴承组件名下的子组件 `球组-…`（`comp.occurrences.addNewComponent`，
-  不是 root——否则平级）。球的圆周阵列在球组内做（组内自建过轴平面 + r=0 构造轴），
-  与装球口阵列解耦
+  不是 root——否则平级）。球的圆周阵列在球组内做，与装球口阵列解耦。
+  ⚠ **gen_bearing_full.py 本体尚未切换此结构（球仍平铺在轴承组件下）**——这是待办不是 bug；
+  agent 不要自行改造脚本去补，平铺结构下 no3dprint 选择集正常工作
+- **嵌套体入选择集的坑（实测三路径）**：组件链上拿的 occ（`comp.occurrences.item(n).bRepBodies`）
+  喂 selectionSets.add 必报 `InternalValidationError: owningCompOfEntity == owningCompOfGroups`。
+  正确做法二选一：① `root.allOccurrences` 里按组件名找到该 occ，再 `.bRepBodies`（root 视图）；
+  ② `nativeBody.createForAssemblyContext(root视图occ)` 造代理
 - **选择集只留 `no3dprint`**（全部球一键隐藏，导出打印用）。坑：枚举 selectionSets 过程中
   deleteMe 会使迭代器失效 → 惰性枚举跳过失效引用、多趟清完
 - **实体**：`内盘` / `中环` / `球01…球NN`（自然序重命名；外环已并入宿主不单独存在）

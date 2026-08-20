@@ -85,3 +85,6 @@
   **可运行时切换**：`des.designIntent = DesignIntentTypes.HybridDesignIntentType`（2），
   切完立即可 addNewComponent（实测）；`documents.add(FusionDesignDocumentType)` 新建的档默认 Hybrid。
   注意 `app.activeDocument` 只读（无 setter），跨文档操作直接用 doc 对象。
+- selectionSets.add 喂嵌套组件的体，occ 必须**root 视图**：组件链 occ.bRepBodies →
+  InternalValidationError(owningCompOfEntity==owningCompOfGroups)；root.allOccurrences
+  拿的 occ 或 createForAssemblyContext(rootocc) 均实测 OK（2026-08-20 三路径对照）。
