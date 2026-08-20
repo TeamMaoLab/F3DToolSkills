@@ -299,7 +299,7 @@ def main():
     if plane is None:
         return {"error": "过轴平面失败"}
     plane.name = "轴承截面平面"
-    steps["①过轴平面"] = "ok"
+    steps["S1过轴平面"] = "ok"
 
     # ============ 草图落笔器：官方 API（手写矩阵逆映射在 ±Z 轴孔上有符号翻面 bug，已废弃）============
     def mapper(sk):
@@ -354,7 +354,7 @@ def main():
     sk_in, axis_line = make_loop_sketch("内盘闭环", in_segs, in_arc)
     sk_ring, _ = make_loop_sketch("中环闭环", ring_segs, None)
     sk_out, _ = make_loop_sketch("外环闭环", out_segs, out_arc)
-    steps["②闭环草图"] = "in={} ring={} out={}".format(
+    steps["S2闭环草图"] = "in={} ring={} out={}".format(
         sk_in.profiles.count, sk_ring.profiles.count, sk_out.profiles.count)
     if not (sk_in.profiles.count == sk_ring.profiles.count == sk_out.profiles.count == 1):
         return {"error": "闭环草图面域数异常（in={} ring={} out={}，应各=1；闭环未咬合）".format(
@@ -387,9 +387,9 @@ def main():
         bodies.append(revolve_sk(sk_in, "内盘旋转").bodies.item(0))
         bodies.append(revolve_sk(sk_ring, "中环旋转").bodies.item(0))
         bodies.append(revolve_sk(sk_out, "外环旋转").bodies.item(0))
-        steps["③旋转三体"] = "ok bodies={}".format(len(bodies))
+        steps["S3旋转三体"] = "ok bodies={}".format(len(bodies))
     except Exception as e:
-        steps["③旋转三体"] = "FAIL " + str(e)[:120]
+        steps["S3旋转三体"] = "FAIL " + str(e)[:120]
 
     # ④ 分类
     inner = ring = outer = None
@@ -407,14 +407,17 @@ def main():
         for bd, nm in ((inner, "内盘"), (ring, "中环"), (outer, "外环")):
             if bd:
                 bd.name = nm
-        steps["④分类"] = "ok"
+        steps["S3·分类"] = "ok"
     except Exception as e:
-        steps["④分类"] = "FAIL " + str(e)[:100]
+        steps["S3·分类"] = "FAIL " + str(e)[:100]
 
     # ============ ⑤ 球窝切割（球刀体阵列 ×N → 一次性 Cut）============
-    def make_sphere_body(rc, zc, rr, name):
-        """球体：截面平面（过轴）上画半圆（逆映射落笔）→ 绕直径旋转。"""
-        skb = comp.sketches.add(plane)
+    def make_sphere_body(rc, zc, rr, name, comp_t=None, plane_t=None):
+        """球体：截面平面（过轴）上画半圆（逆映射落笔）→ 绕直径旋转。
+        默认建在 comp；球组版传 grp + 组内自建平面。返回 (body, feat, 轴线)。"""
+        comp_t = comp_t or comp
+        plane_t = plane_t or plane
+        skb = comp_t.sketches.add(plane_t)
         skb.name = name + "-草图"
         TL = mapper(skb)
         C = W(rc, zc)
@@ -427,8 +430,8 @@ def main():
         for i in range(skb.profiles.count):
             ocb.add(skb.profiles.item(i))
         inpb = None
-        for mk in (lambda: comp.features.revolveFeatures.createInput(ocb, ax_b, True),
-                   lambda: comp.features.revolveFeatures.createInput(ocb, ax_b)):
+        for mk in (lambda: comp_t.features.revolveFeatures.createInput(ocb, ax_b, True),
+                   lambda: comp_t.features.revolveFeatures.createInput(ocb, ax_b)):
             try:
                 inpb = mk()
                 break
@@ -436,11 +439,11 @@ def main():
                 continue
         inpb.operation = NewBody
         inpb.setAngleExtent(False, adsk.core.ValueInput.createByString("360 deg"))
-        fb = comp.features.revolveFeatures.add(inpb)
+        fb = comp_t.features.revolveFeatures.add(inpb)
         fb.name = name
         bd = fb.bodies.item(0)
         bd.name = name
-        return bd, fb
+        return bd, fb, ax_b
 
     try:
         if ring is None:
@@ -449,7 +452,7 @@ def main():
         for b in comp.bRepBodies:
             if b.name == "中环":
                 ring_now = b
-        tool, _ = make_sphere_body(R_track, zB, RG, "球窝刀")
+        tool, _tf, _ta = make_sphere_body(R_track, zB, RG, "球窝刀")
         cps = comp.features.circularPatternFeatures
         oc1 = adsk.core.ObjectCollection.create()
         oc1.add(tool)
@@ -480,9 +483,9 @@ def main():
         ci.operation = Cut
         f = combs.add(ci)
         f.name = "球窝切割×N"
-        steps["⑤球窝切割"] = "ok tools={}".format(oc_t.count)
+        steps["S4球窝切割"] = "ok tools={}".format(oc_t.count)
     except Exception as e:
-        steps["⑤球窝切割"] = "FAIL " + str(e)[:150]
+        steps["S4球窝切割"] = "FAIL " + str(e)[:150]
 
     # ============ ⑥ 凸雕 V口（−1mm 切入，凹凸验证）============
     slotW = 2 * (D_h - zB) / math.tan(math.radians(45))
@@ -587,43 +590,67 @@ def main():
                 raise RuntimeError("凸雕方位错误（偏离 α0 {:.1f}°），已删除".format(
                     math.degrees(math.acos(max(-1, min(1, cos_a))))))
         emb_feat = f
-        steps["⑥凸雕V口"] = "ok 凹陷r={}".format(r_dent)
+        steps["S5装球口凸雕"] = "ok 凹陷r={}".format(r_dent)
     except Exception as e:
-        steps["⑥凸雕V口"] = "FAIL " + str(e)[:150]
+        steps["S5装球口凸雕"] = "FAIL " + str(e)[:150]
 
     # ⑥b 口棱圆角：移到 ⑨（阵列特征复制不了 fillet，改为阵列后统一倒）
 
-    # ============ ⑦ 标准球（DBALL 预设） ============
+    # ============ S6· 标准球（入球组子组件——2026-08-20 嵌套定则） ============
+    grp = grp_name = None
+    ball_axis = None
     try:
-        ball_body, ball_feat = make_sphere_body(R_track, zB, DBALL / 2, "球-⌀{:.2f}".format(DBALL))
-        steps["⑦标准球"] = "ok"
-    except Exception as e:
-        steps["⑦标准球"] = "FAIL " + str(e)[:120]
-        ball_feat = None
-
-    # ============ ⑧ 圆周阵列（凸雕+圆角+球）============
-    try:
-        cps = comp.features.circularPatternFeatures
-        oc_in = adsk.core.ObjectCollection.create()
-        for f in (emb_feat, ball_feat):
-            if f:
-                oc_in.add(f)
-        inp = None
-        for mk in (lambda: cps.createInput(oc_in, axis_line),):
+        grp_name = "球组-⌀{:.0f}".format(R_h * 2)
+        grp_occ = comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+        grp = grp_occ.component
+        grp.name = grp_name
+        # 组内自建过轴平面（三点式挂草图参考点——点不死，防圆角断链）
+        skg = grp.sketches.add(grp.xYConstructionPlane)
+        skg.name = "球组-参考点"
+        qA = skg.sketchPoints.add(adsk.core.Point3D.create(cm(A0[0]), cm(A0[1]), cm(A0[2])))
+        qB = skg.sketchPoints.add(adsk.core.Point3D.create(cm(A0[0] + u[0]), cm(A0[1] + u[1]), cm(A0[2] + u[2])))
+        qC = skg.sketchPoints.add(adsk.core.Point3D.create(cm(A0[0] + er0[0] * R5), cm(A0[1] + er0[1] * R5), cm(A0[2] + er0[2] * R5)))
+        plg = None
+        for _try in range(2):
             try:
-                inp = mk()
+                pin = grp.constructionPlanes.createInput()
+                pin.setByThreePoints(qA, qB, qC)
+                plg = grp.constructionPlanes.add(pin)
                 break
             except Exception:
                 continue
-        inp.quantity = adsk.core.ValueInput.createByString("{}".format(N_eff))
-        inp.totalAngle = adsk.core.ValueInput.createByString("360 deg")
-        f = cps.add(inp)
-        f.name = "圆周阵列"
-        steps["⑧圆周阵列"] = "ok x{}".format(N_eff)
+        if plg is None:
+            raise RuntimeError("球组过轴平面失败")
+        plg.name = "球组截面平面"
+        ball_body, ball_feat, ball_axis = make_sphere_body(
+            R_track, zB, DBALL / 2, "球-⌀{:.2f}".format(DBALL), grp, plg)
+        steps["S6·标准球"] = "ok(球组子组件)"
     except Exception as e:
-        steps["⑧圆周阵列"] = "FAIL " + str(e)[:150]
+        steps["S6·标准球"] = "FAIL " + str(e)[:120]
+        ball_feat = None
 
-    # ============ ⑨ 口棱圆角（阵列后，凹陷∩球窝 边 ×16）============
+    # ============ S6· 圆周阵列（凸雕+圆角+球）============
+    try:
+        # 凸雕留 comp（中环上）；球在球组内用组内轴阵列——与装球口阵列解耦（嵌套定则）
+        if emb_feat:
+            oc_e = adsk.core.ObjectCollection.create(); oc_e.add(emb_feat)
+            inp_e = comp.features.circularPatternFeatures.createInput(oc_e, axis_line)
+            inp_e.quantity = adsk.core.ValueInput.createByString("{}".format(N_eff))
+            inp_e.totalAngle = adsk.core.ValueInput.createByString("360 deg")
+            fe = comp.features.circularPatternFeatures.add(inp_e)
+            fe.name = "装球口阵列"
+        if ball_feat and ball_axis is not None and grp is not None:
+            oc_b = adsk.core.ObjectCollection.create(); oc_b.add(ball_feat)
+            inp_b = grp.features.circularPatternFeatures.createInput(oc_b, ball_axis)
+            inp_b.quantity = adsk.core.ValueInput.createByString("{}".format(N_eff))
+            inp_b.totalAngle = adsk.core.ValueInput.createByString("360 deg")
+            fb8 = grp.features.circularPatternFeatures.add(inp_b)
+            fb8.name = "球阵列"
+        steps["S6·阵列"] = "ok x{}（球组内）".format(N_eff)
+    except Exception as e:
+        steps["S6·阵列"] = "FAIL " + str(e)[:150]
+
+    # ============ S6· 口棱圆角（阵列后，凹陷∩球窝 边 ×16）============
     fillet_ok = False
     try:
         ring5 = None
@@ -640,7 +667,7 @@ def main():
                 adj = list(e_.faces)
                 if len(adj) == 2 and sorted(tname(x.geometry) for x in adj) == ["NurbsSurface", "Sphere"]:
                     cand.append(e_)
-        steps["⑨圆角候选边"] = len(cand)
+        steps["S6·圆角候选边"] = len(cand)
         if not cand:
             raise RuntimeError("没找到凹陷∩球窝边")
         fils = comp.features.filletFeatures
@@ -654,7 +681,7 @@ def main():
             fx = fils.add(fi)
             fx.name = "口棱圆角"
             fillet_ok = True
-            steps["⑨口棱圆角"] = "ok(一次全倒) faces={}".format(fx.faces.count)
+            steps["S6·口棱圆角"] = "ok(一次全倒) faces={}".format(fx.faces.count)
         except Exception:
             # 方案B：按方位角分组 ×8（每球位 2 条）
             def ang_of(e_):
@@ -681,11 +708,11 @@ def main():
                 fx.name = "口棱圆角{}".format(gi + 1)
                 n_ok += fx.faces.count
             fillet_ok = n_ok > 0
-            steps["⑨口棱圆角"] = "ok(分组×{}) faces={}".format(len(groups), n_ok)
+            steps["S6·口棱圆角"] = "ok(分组×{}) faces={}".format(len(groups), n_ok)
     except Exception as e:
-        steps["⑨口棱圆角"] = "FAIL " + str(e)[:150]
+        steps["S6·口棱圆角"] = "FAIL " + str(e)[:150]
 
-    # ============ ⑩ 宿主融合（外环 JOIN 宿主，内盘/中环/球保持独立）============
+    # ============ S7 宿主融合（外环 JOIN 宿主，内盘/中环/球保持独立）============
     try:
         host_body = face.body                     # 孔面所属实体 = 宿主
         outer_proxy = None
@@ -709,19 +736,20 @@ def main():
         ci.operation = Join
         f = combs.add(ci)
         f.name = FUSION_NAME
-        steps["⑩宿主融合"] = "ok"
+        steps["S7宿主融合"] = "ok"
         # 验收：宿主应并入外环的 Torus 球道
         n_torus = sum(1 for ff in host_body.faces if tname(ff.geometry) == "Torus")
         verify["宿主融合"] = {"宿主Torus面": n_torus, "状态": "✓" if n_torus else "✗"}
     except Exception as e:
-        steps["⑩宿主融合"] = "FAIL " + str(e)[:150]
+        steps["S7宿主融合"] = "FAIL " + str(e)[:150]
         verify["宿主融合"] = {"状态": "✗"}
 
-    # ============ ⑩.5 命名与分组整理 ============
+    # ============ S8· 命名与分组整理 ============
     try:
         # 球自然序重命名：球-⌀XX / 球-⌀XX (k) → 球01…球NN
         import re as _re
-        balls = [b for b in comp.bRepBodies if b.name.startswith("球")]
+        _scan = list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else [])
+        balls = [b for b in _scan if b.name.startswith("球")]
         def _bn(b):
             m = _re.search(r"\((\d+)\)", b.name)
             return int(m.group(1)) if m else 0
@@ -729,11 +757,20 @@ def main():
         for i, b in enumerate(balls):
             b.name = "球{:02d}".format(i + 1)
         # 脚手架隐藏：草图全部收起，构造面灭灯（浏览器树只留成品）
-        for sk_ in comp.sketches:
-            try:
-                sk_.isVisible = False
-            except Exception:
-                pass
+        for _comp_x in [comp] + ([grp] if grp is not None else []):
+            for sk_ in _comp_x.sketches:
+                try:
+                    sk_.isVisible = False
+                except Exception:
+                    pass
+            for cp_ in _comp_x.constructionPlanes:
+                try:
+                    cp_.isLightBulbOn = False
+                except Exception:
+                    try:
+                        cp_.isVisible = False
+                    except Exception:
+                        pass
         for cp_ in comp.constructionPlanes:
             try:
                 cp_.isLightBulbOn = False
@@ -742,11 +779,11 @@ def main():
                     cp_.isVisible = False
                 except Exception:
                     pass
-        steps["⑩.5整理"] = "ok 球×{}重命名+脚手架隐藏".format(len(balls))
+        steps["S8·整理"] = "ok 球×{}重命名+脚手架隐藏".format(len(balls))
     except Exception as e:
-        steps["⑩.5整理"] = "FAIL " + str(e)[:120]
+        steps["S8·整理"] = "FAIL " + str(e)[:120]
 
-    # ============ ⑩.6 选择集沉淀（球组 / 轴承全部：浏览器点击即选 → 一键隐藏 / 导出）============
+    # ============ S8· 选择集沉淀（球组 / 轴承全部：浏览器点击即选 → 一键隐藏 / 导出）============
     try:
         sig = "⌀{:.0f}".format(R_h * 2)
         set_balls, set_all = "球-" + sig, "轴承-全部-" + sig
@@ -761,6 +798,14 @@ def main():
                 occ_ = o_
                 break
         bodies_ = list(occ_.bRepBodies)      # occurrence 视图 = root 上下文实体（选择集只吃这个）
+        if grp_name:
+            grp_root = None
+            for o_ in root.allOccurrences:   # 嵌套体入集必须 root 视图 occ（组件链 occ 必报 InternalValidationError）
+                if o_.component.name == grp_name:
+                    grp_root = o_
+                    break
+            if grp_root is not None:
+                bodies_ = bodies_ + list(grp_root.bRepBodies)
         balls_ = [b_ for b_ in bodies_ if b_.name.startswith("球")]
         msg = []
         if balls_:
@@ -776,13 +821,13 @@ def main():
                     ss_.deleteMe()
                 except Exception:
                     pass
-        steps["⑩.6选择集"] = "ok " + " + ".join(msg) if msg else "ok(空)"
+        steps["S8·选择集"] = "ok " + " + ".join(msg) if msg else "ok(空)"
     except Exception as e:
-        steps["⑩.6选择集"] = "FAIL " + str(e)[:120]
+        steps["S8·选择集"] = "FAIL " + str(e)[:120]
 
     # ============ ⑪ 交付强制几何验收 ============
     try:
-        for b in comp.bRepBodies:
+        for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else []):
             # 用实体顶点采样（bbox 对角会虚报径向，如圆柱盒角=√2·R）
             verts = []
             for f_ in b.faces:
@@ -802,7 +847,7 @@ def main():
             for f_ in b.faces:
                 t = tname(f_.geometry)
                 surf[t] = surf.get(t, 0) + 1
-            if b.name.startswith("球-"):
+            if b.name.startswith("球"):
                 cen = ((bb.minPoint.x + bb.maxPoint.x) / 2 * 10,
                        (bb.minPoint.y + bb.maxPoint.y) / 2 * 10,
                        (bb.minPoint.z + bb.maxPoint.z) / 2 * 10)
@@ -819,13 +864,14 @@ def main():
                     verify[nm + "-真弧"] = "✓ Torus×{}".format(n_torus) if n_torus else "✗ 仍是折线"
         steps_ok = all("FAIL" not in str(v) for v in steps.values())
         pos_ok = all(v.get("位置") != "✗" for v in verify.values() if isinstance(v, dict))
-        n_ball_ok = sum(1 for b in comp.bRepBodies if b.name.startswith("球")) == N_eff
+        n_ball_ok = sum(1 for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else []) if b.name.startswith("球")) == N_eff
         verify["总结论"] = ("PASS ✓" if (steps_ok and pos_ok and n_ball_ok)
                             else "FAIL ✗ steps_ok={} pos_ok={} balls8={}".format(steps_ok, pos_ok, n_ball_ok))
     except Exception as e:
         verify["error"] = str(e)[:150]
 
-    final = [{"name": b.name, "faces": b.faces.count} for b in comp.bRepBodies]
+    final = [{"name": b.name, "faces": b.faces.count}
+             for b in list(comp.bRepBodies) + (list(grp.bRepBodies) if grp is not None else [])]
 
     # no3dprint：全部球一键隐藏（导出打印用，用户定则）
     try:
@@ -833,7 +879,7 @@ def main():
     except Exception:
         pass
     _n3d = [b for b in root.bRepBodies if b.name.startswith("球")]
-    for o_ in root.occurrences:
+    for o_ in root.allOccurrences:
         _n3d += [b_ for b_ in o_.bRepBodies if b_.name.startswith("球")]
     if _n3d:
         des.selectionSets.add(_n3d, "no3dprint")

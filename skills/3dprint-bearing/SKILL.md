@@ -88,6 +88,7 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode "code@<skill>/scripts/gen_be
   原地改特征链极易留脏状态。
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
+- steps 编号 **S0-S8**（S1过轴面/S2闭环草图/S3旋转三体/S4球窝切割/S5装球口/S6标准球+阵列+圆角/S7宿主融合/S8整理与选择集），与 steps.html 手册的流程树同语言
 - 输出看四块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）、
   **`report_html`（给用户的报告链接：`http://127.0.0.1:9099/report`**：参数表+按实际参数
   绘制的剖面 SVG+步骤/验收表+下一步指引，写到用户桌面、由端点 /report 伺服）——agent 跑完
@@ -135,8 +136,8 @@ N = ⌊360° / max(θ口, θ窝, θ球)⌋，下限 3
   **签名只含孔径会在同径多孔时互相清杀**（实测踩坑），必须带宿主名
 - **球组子组件**：球统一放轴承组件名下的子组件 `球组-…`（`comp.occurrences.addNewComponent`，
   不是 root——否则平级）。球的圆周阵列在球组内做，与装球口阵列解耦。
-  ⚠ **gen_bearing_full.py 本体尚未切换此结构（球仍平铺在轴承组件下）**——这是待办不是 bug；
-  agent 不要自行改造脚本去补，平铺结构下 no3dprint 选择集正常工作
+  **已实现（2026-08-20）**：`轴承-全-宿主-⌀XX → 球组-⌀XX → 球01…球NN`，组内自建过轴平面
+  三点式（防断链）+ 组内轴阵列（与装球口阵列解耦），实测重建两轮 PASS ✓
 - **嵌套体入选择集的坑（实测三路径）**：组件链上拿的 occ（`comp.occurrences.item(n).bRepBodies`）
   喂 selectionSets.add 必报 `InternalValidationError: owningCompOfEntity == owningCompOfGroups`。
   正确做法二选一：① `root.allOccurrences` 里按组件名找到该 occ，再 `.bRepBodies`（root 视图）；
