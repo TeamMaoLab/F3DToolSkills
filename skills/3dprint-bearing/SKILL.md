@@ -38,6 +38,7 @@ description: >-
 | 权威文档 | `reference/bearing_in_hole_workflow.md` | 配方表/球数公式/API 坑位全表——**改代码前必读第五、六点五节** |
 | 球径推演 | `reference/bearing_ball_sizes.md` | ⌀3→2.5→2.381 缩放规则、孔深/N 杠杆 |
 | 网页设计器 | `designer/bearing_designer.html` | 参数探索 + 3D 预览 + JSON 导出（浏览器直接打开） |
+| 原理手册 | `steps.html` | 工作原理讲解页（参数化活草图+分步构造+S0-S8 流程树），浏览器经 /s/ 打开 |
 | 配方草图页 | `designer/bearing_sketch.html` | 三视图纯线稿 + 尺寸标注 |
 | 宿主示例 | `scripts/prep_host_demo.py` | 无宿主时造 ⌀24×4+⌀16 通孔宿主并把孔面入选择集（实测 PASS） |
 | 只读探针 | `scripts/inspect_selection.py`、`scripts/dump_features.py` | 看选集/时间线/面几何 |
