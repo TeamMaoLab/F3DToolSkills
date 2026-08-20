@@ -159,7 +159,7 @@ async function verifyVsFusion(){
    else bad.push(name+': '+k);});
  }
  // 先从实测数据反推文档签名，参数不一致=探索模式（不是错误）
- let docRh=0,docDh=0,docDb=0;
+ let docRh=0,docDh=0,docDb=0,docClr=0,docRg=0;
  try{const inr=(data.sketches['内盘闭环']||{curves:[]}).curves;
   for(const c of inr){const pts=Array.isArray(c)?[c[1],c[2]]:[c.a,c.b];
    for(const q of pts){docRh=Math.max(docRh,0);}}
@@ -171,10 +171,12 @@ async function verifyVsFusion(){
    for(const q of pts)docDh=Math.max(docDh,-q[1]);}
   const ball=(data.sketches['球-⌀2.38-草图']||{curves:[]}).curves;
   for(const c of ball){const r=Array.isArray(c)?c[4]:c.r;if(r&&r<3)docDb=r*2;}
+  const cut=(data.sketches['球窝刀-草图']||{curves:[]}).curves;
+  for(const c of cut){const r=Array.isArray(c)?c[4]:c.r;if(r&&r<3){docRg=r;docClr=r-docDb/2;}}
  }catch(e){}
  if(total&&match===total){el.textContent=`与 Fusion 实测对照 ✓ ${match}/${total} 条曲线一致`;el.style.color='var(--ok)';}
- else if(Math.abs(docRh-p.Rh)>0.05||Math.abs(docDh-p.Dh)>0.05||Math.abs(docDb-p.db)>0.05){
-  el.textContent=`探索模式：当前参数 ⌀${p.Rh*2}×${p.Dh} 尚未在 Fusion 构建（文档实测为 ⌀${docRh.toFixed(0)}×${docDh.toFixed(0)}），满意后设文档属性+重新注入即可落地`;el.style.color='var(--acc)';}
+ else if(Math.abs(docRh-p.Rh)>0.05||Math.abs(docDh-p.Dh)>0.05||Math.abs(docDb-p.db)>0.05||Math.abs(docClr-(+p.clr))>0.02){
+  el.textContent=`探索模式：当前参数 ⌀${p.Rh*2}×${p.Dh}/球⌀${p.db.toFixed(3)}/clr${(+p.clr).toFixed(2)} 尚未在 Fusion 构建（文档实测 ⌀${docRh.toFixed(0)}×${docDh.toFixed(0)}/clr${docClr.toFixed(2)}），满意后设文档属性+重新注入即可落地`;el.style.color='var(--acc)';}
  else if(total){el.textContent=`对照 ✗ ${match}/${total}：${bad[0]||''}…`;el.style.color='#d97706';}
 }
 function drawS2(){
