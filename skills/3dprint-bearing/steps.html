@@ -43,7 +43,7 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 </div>
 
 <div class="panel">
-<div class="head"><span class="tag">S2</span>关键截面草图 · 参数化构造的完整复现（canvas 实时生成）</div>
+<div class="head"><span class="tag">S2</span>关键截面草图 · 参数化构造复现　<span id="sk2-verify" style="font:12px Consolas,monospace;color:var(--sub)">对照中…</span></div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
 <div class="note">与 Fusion 同一套构造逻辑：45° 倒角=刀圆 135° 切点切线（t=r_g/√2，回到 R1/R4 偏移 2t−δ）· 内外环各带球道弧 · 竖直点划线 x=0 即 r=0 旋转轴 · 改上方参数全图重算</div>
 <div class="v">验收：profile 数 in=1、ring=1、out=1</div>
@@ -156,7 +156,7 @@ function drawS8(){const p=P(),d=derive(p),s=26;
  [[d.R1,'内盘'],[d.R3,'中环'],[d.R5,'外环→宿主']].forEach(([r,l],i)=>svg.innerHTML+=`<text class="dt" x="${X(r)-30+i*8}" y="${Y(p.Dh)+16}">${l}</text>`);
 }
 function renderAll(){const p=P(),d=derive(p);
- drawS2();drawS8();
+ drawS2();drawS8();verifyVsFusion();
  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
  <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
@@ -168,6 +168,41 @@ $('preset').onchange=e=>{const m={12:[6,4],16:[8,4],20:[10,4]}[e.target.value];$
 renderAll();
 
 
+function modelCurves(p,d){ // 与 Fusion dump 完全同构的曲线表（y=-深度，mm）
+ const t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
+ const Y=z=>-z, L=(a,b)=>({t:'line',a:[a[0],Y(a[1])],b:[b[0],Y(b[1])]});
+ const A=(aa,bb)=>({t:'arc',c:[d.Rt,Y(zB)],a:[aa[0],Y(aa[1])],b:[bb[0],Y(bb[1])],r:d.rg});
+ return {
+ '内盘闭环':[L([0,0],[d.R1,0]),L([d.R1,0],[d.R1,zB-off]),L([d.R1,zB-off],[xa,zB-t]),
+   A([xa,zB-t],[xa,zB+t]),L([xa,zB+t],[d.R1,zB+off]),L([d.R1,zB+off],[d.R1,Dh]),L([d.R1,Dh],[0,Dh]),L([0,Dh],[0,0])],
+ '中环闭环':[L([d.R2,0],[d.R3,0]),L([d.R3,0],[d.R3,Dh]),L([d.R3,Dh],[d.R2,Dh]),L([d.R2,Dh],[d.R2,0])],
+ '外环闭环':[L([d.R4,0],[d.R4,zB-off]),L([d.R4,zB-off],[xb,zB-t]),
+   A([xb,zB-t],[xb,zB+t]),L([xb,zB+t],[d.R4,zB+off]),L([d.R4,zB+off],[d.R4,Dh]),L([d.R4,Dh],[d.R5,Dh]),L([d.R5,Dh],[d.R5,0]),L([d.R5,0],[d.R4,0])],
+ '球窝刀-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-d.rg,Y(zB)],b:[d.Rt+d.rg,Y(zB)],r:d.rg},L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB])],
+ '球-⌀2.38-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-p.db/2,Y(zB)],b:[d.Rt+p.db/2,Y(zB)],r:p.db/2},L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB])]};
+}
+async function verifyVsFusion(){
+ const el=$('sk2-verify');
+ let data; try{ data=await (await fetch('/s/3dprint-bearing/sketch2.json')).json(); }
+ catch(e){ el.textContent='未对照（sketch2.json 缺失）'; el.style.color='var(--sub)'; return; }
+ const p=P(),d=derive(p),model=modelCurves(p,d);
+ const tol=0.05; let match=0,total=0,maxdev=0,bad=[];
+ const key=p=>JSON.stringify(p.map(v=>+v.toFixed(2)));
+ for(const name in model){
+  const fus=(data.sketches[name]||{}).curves; if(!fus){continue;}
+  total+=fus.length;
+  // 端点多重集比对（line/arc 都比端点+圆心+半径）
+  const norm=c=>{ if(c.t==='line'||c.t==='L')return 'L:'+[c.a||c[1],c.b||c[2]].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
+   const cc=c.c||c[1],aa=c.a||c[2],bb=c.b||c[3],r=c.r||c[4];
+   return 'A:'+cc.map(v=>+v.toFixed(2))+'|'+[aa,bb].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+r).toFixed(2);};
+  const ms=new Map(); model[name].forEach(c=>{const k=norm(c); ms.set(k,(ms.get(k)||0)+1);});
+  fus.forEach(c=>{const k=norm(c);
+   if(ms.get(k)>0){ms.set(k,ms.get(k)-1);match++;}
+   else bad.push(name+': '+k);});
+ }
+ if(total&&match===total){el.textContent=`与 Fusion 实测对照 ✓ ${match}/${total} 条曲线一致`;el.style.color='var(--ok)';}
+ else if(total){el.textContent=`对照 ✗ ${match}/${total}（${bad.length?'参数与文档不一致: ':''}${bad[0]||''}…）`;el.style.color='#d97706';}
+}
 function drawS2(){
  const p=P(),d=derive(p),cv=$('sk2');
  const t=d.rg/Math.SQRT2, zB=d.zB, Dh=p.Dh;
