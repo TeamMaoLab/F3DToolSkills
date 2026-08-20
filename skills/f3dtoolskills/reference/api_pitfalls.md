@@ -79,3 +79,9 @@
 - 两同心圆草图产生**两个 profile（内盘+圆环）**，`profiles.item(0)` 不保证是环——
   按 bbox 半径==外径筛选（同前条：Profile 无 .area 用 bbox）。
 - 组件基准面是 `xYConstructionPlane`（不是 `xYPlane`）。
+
+## 文档类型（零件设计 vs 装配）
+- 「零件设计文档只能包含一个零部件」报错 = `design.designIntent == PartDesignIntentType(0)`。
+  **可运行时切换**：`des.designIntent = DesignIntentTypes.HybridDesignIntentType`（2），
+  切完立即可 addNewComponent（实测）；`documents.add(FusionDesignDocumentType)` 新建的档默认 Hybrid。
+  注意 `app.activeDocument` 只读（无 setter），跨文档操作直接用 doc 对象。
