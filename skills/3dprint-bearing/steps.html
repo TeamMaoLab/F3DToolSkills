@@ -49,7 +49,6 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <button class="s2nav" onclick="s2Go(0)" title="全部">⟶全显</button>
 <span class="note" id="s2-desc" style="margin:0"></span></div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:8px;margin-top:8px"></canvas>
-<div class="note" id="sk2-verify" style="font:12px Consolas,monospace;color:var(--sub)">对照中…</div>
 <div class="note" style="line-height:1.9">构造顺序：<br>
 ① r=0 轴与深度界线 → ② 刀圆（R_track, z_B, r_g）<br>
 ③ 内盘闭环（R1 → 45°切线切刀圆 → 左弧 → 切回）→ ④ 中环 R2..R3 → ⑤ 外环闭环（同构镜像）<br>
@@ -133,7 +132,7 @@ function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘球道凹口：刀圆@Rt,z
 
 
 function renderAll(){const p=P(),d=derive(p);
- drawS2();verifyVsFusion();
+ drawS2();
  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
  <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
@@ -252,49 +251,6 @@ function modelCurves(p,d){ // 与 Fusion dump 完全同构的曲线表（y=-深�
    A([xb,zB-t],[xb,zB+t],0),L([xb,zB+t],[d.R4,zB+off]),L([d.R4,zB+off],[d.R4,Dh]),L([d.R4,Dh],[d.R5,Dh]),L([d.R5,Dh],[d.R5,0]),L([d.R5,0],[d.R4,0])],
  '球窝刀-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-d.rg,Y(zB)],b:[d.Rt+d.rg,Y(zB)],r:d.rg,mid:270},L([d.Rt-d.rg,zB],[d.Rt+d.rg,zB])],
  '球-⌀2.38-草图':[{t:'arc',c:[d.Rt,Y(zB)],a:[d.Rt-p.db/2,Y(zB)],b:[d.Rt+p.db/2,Y(zB)],r:p.db/2,mid:270},L([d.Rt-p.db/2,zB],[d.Rt+p.db/2,zB])]};
-}
-async function verifyVsFusion(){
- const el=$('sk2-verify');
- let data; try{ data=await (await fetch('/s/3dprint-bearing/sketch2.json')).json(); }
- catch(e){ el.textContent='未对照（sketch2.json 缺失）'; el.style.color='var(--sub)'; return; }
- const p=P(),d=derive(p),model=modelCurves(p,d);
- const tol=0.05; let match=0,total=0,maxdev=0,bad=[];
- const key=p=>JSON.stringify(p.map(v=>+v.toFixed(2)));
- for(const name in model){
-  const fus=(data.sketches[name]||{}).curves; if(!fus){continue;}
-  total+=fus.length;
-  // 端点多重集比对（line/arc 都比端点+圆心+半径）
-  const norm=c=>{ // 对象形态 {t,a,b,c,r} / Fusion dump 数组形态 ['L',a,b] / ['A',c,a,b,r]
-   if(Array.isArray(c)){
-    if(c[0]==='L')return 'L:'+[c[1],c[2]].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
-    return 'A:'+c[1].map(v=>+v.toFixed(2))+'|'+[c[2],c[3]].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+c[4]).toFixed(2);}
-   if(c.t==='line')return 'L:'+[c.a,c.b].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
-   return 'A:'+c.c.map(v=>+v.toFixed(2))+'|'+[c.a,c.b].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+c.r).toFixed(2);};
-  const ms=new Map(); model[name].forEach(c=>{const k=norm(c); ms.set(k,(ms.get(k)||0)+1);});
-  fus.forEach(c=>{const k=norm(c);
-   if(ms.get(k)>0){ms.set(k,ms.get(k)-1);match++;}
-   else bad.push(name+': '+k);});
- }
- // 先从实测数据反推文档签名，参数不一致=探索模式（不是错误）
- let docRh=0,docDh=0,docDb=0,docClr=0,docRg=0;
- try{const inr=(data.sketches['内盘闭环']||{curves:[]}).curves;
-  for(const c of inr){const pts=Array.isArray(c)?[c[1],c[2]]:[c.a,c.b];
-   for(const q of pts){docRh=Math.max(docRh,0);}}
-  const outr=(data.sketches['外环闭环']||{curves:[]}).curves;
-  for(const c of outr){const pts=Array.isArray(c)?[c[1],c[2]]:[c.a,c.b];
-   for(const q of pts)docRh=Math.max(docRh,q[0]);}
-  const inl=(data.sketches['内盘闭环']||{curves:[]}).curves;
-  for(const c of inl){const pts=Array.isArray(c)?[c[1],c[2]]:[c.a,c.b];
-   for(const q of pts)docDh=Math.max(docDh,-q[1]);}
-  const ball=(data.sketches['球-⌀2.38-草图']||{curves:[]}).curves;
-  for(const c of ball){const r=Array.isArray(c)?c[4]:c.r;if(r&&r<3)docDb=r*2;}
-  const cut=(data.sketches['球窝刀-草图']||{curves:[]}).curves;
-  for(const c of cut){const r=Array.isArray(c)?c[4]:c.r;if(r&&r<3){docRg=r;docClr=r-docDb/2;}}
- }catch(e){}
- if(total&&match===total){el.textContent=`与 Fusion 实测对照 ✓ ${match}/${total} 条曲线一致`;el.style.color='var(--ok)';}
- else if(Math.abs(docRh-p.Rh)>0.05||Math.abs(docDh-p.Dh)>0.05||Math.abs(docDb-p.db)>0.05||Math.abs(docClr-(+p.clr))>0.02){
-  el.textContent=`探索模式：当前参数 ⌀${p.Rh*2}×${p.Dh}/球⌀${p.db.toFixed(3)}/clr${(+p.clr).toFixed(2)} 尚未在 Fusion 构建（文档实测 ⌀${docRh.toFixed(0)}×${docDh.toFixed(0)}/clr${docClr.toFixed(2)}），满意后设文档属性+重新注入即可落地`;el.style.color='var(--acc)';}
- else if(total){el.textContent=`对照 ✗ ${match}/${total}：${bad[0]||''}…`;el.style.color='#d97706';}
 }
 
 </script></body></html>
