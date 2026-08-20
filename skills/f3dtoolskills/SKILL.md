@@ -7,7 +7,7 @@ description: >-
   Python 3.14 API 坑位表、
   幂等构建与实体读回验收纪律、STL 导出坑（lightbulb 假阳性）。
   当用户说"帮我安装 TeamMaoLab/F3DToolSkills / Fusion AI 插件"，或提到 Fusion 远程控制、
-  /exec、f3dtoolskillsEndpoint、9099 端口、Fusion 脚本报错、tempBrep、导出 STL、
+  /exec、F3DToolSkillsEndpoint、9099 端口、Fusion 脚本报错、tempBrep、导出 STL、
   Fusion API 坑、幂等、实体验收，或要在 Fusion 里做任何建模/导出/探查任务时使用。
 ---
 
@@ -68,20 +68,20 @@ curl -s --max-time 3 http://127.0.0.1:9099/ping
 顺带可报告 Fusion 自带 Python 位置（Win `%LOCALAPPDATA%\Autodesk\webdeploy\production\<hash>\Python`，
 当前 3.14）——Fusion 内脚本跑在它里面。
 
-**第 2 步：复制 add-in**（源在本 plugin 的 `../../addin/f3dtoolskillsEndpoint/`）
+**第 2 步：复制 add-in**（源在本 plugin 的 `../../addin/F3DToolSkillsEndpoint/`）
 
 ```bash
-cp -r <plugin根>/addin/f3dtoolskillsEndpoint <AddIns目录>/   # 目录已存在则先 rm 再 cp（升级覆盖）
+cp -r <plugin根>/addin/F3DToolSkillsEndpoint <AddIns目录>/   # 目录已存在则先 rm 再 cp（升级覆盖）
 ```
 
-复制后抽验：`<AddIns>/f3dtoolskillsEndpoint/f3dtoolskillsEndpoint.py` 和 `.manifest` 两个文件都在。
+复制后抽验：`<AddIns>/F3DToolSkillsEndpoint/F3DToolSkillsEndpoint.py` 和 `.manifest` 两个文件都在。
 
 **第 3 步：引导用户手动启动（唯一需要人手的一步）**
 
 Fusion 不允许外部进程启动 add-in。两条路任选：
-- **免复制直跑（推荐试用）**：ADD-INS 面板点绿色 `+`，直接选 `<plugin根>/addin/f3dtoolskillsEndpoint`
+- **免复制直跑（推荐试用）**：ADD-INS 面板点绿色 `+`，直接选 `<plugin根>/addin/F3DToolSkillsEndpoint`
   文件夹加载——不往系统目录拷任何东西，插件升级即自动生效；
-- **标准安装**：Fusion → 实用程序 Utilities → ADD-INS → 列表选中 `f3dtoolskillsEndpoint` → **Run**
+- **标准安装**：Fusion → 实用程序 Utilities → ADD-INS → 列表选中 `F3DToolSkillsEndpoint` → **Run**
   （建议勾 "Run on Startup"，以后自启）。
 
 用户操作完回到第 0 步探活确认，PASS 才算装完。
@@ -155,6 +155,6 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode \
 
 - `reference/api_pitfalls.md` —— Python 3.14 API 坑位表（写代码前必查）
 - `reference/workflow.md` —— 远程链路细节 / 坐标系三层结构 / 导出契约 / 调试手段
-- `../../addin/f3dtoolskillsEndpoint/` —— 核心 add-in 源码（/ping /exec /reload）
+- `../../addin/F3DToolSkillsEndpoint/` —— 核心 add-in 源码（/ping /exec /reload）
 - `../stl-export/` —— 应用 #1（最简范例）
 - `../3dprint-bearing/` —— 应用 #2（3D 打印轴承·孔内成型，重量级范例）

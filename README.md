@@ -58,7 +58,7 @@ curl -G http://127.0.0.1:9099/exec \
 ├─────────────────────────────────────────────┤
 │  方法论层：API 坑位表 / 幂等构建 / 验收三关   │
 ├─────────────────────────────────────────────┤
-│  底座：f3dtoolskillsEndpoint add-in               │
+│  底座：F3DToolSkillsEndpoint add-in               │
 │  Fusion Python 环境 + /exec 注入端点 (:9099) │
 └─────────────────────────────────────────────┘
 ```
@@ -106,7 +106,7 @@ skills/<应用名>/
 
 | 路径 | 层 | 内容 |
 |---|---|---|
-| `addin/f3dtoolskillsEndpoint/` | 底座 | 核心 add-in：`/ping` `/exec` `/reload`（零业务逻辑） |
+| `addin/F3DToolSkillsEndpoint/` | 底座 | 核心 add-in：`/ping` `/exec` `/reload`（零业务逻辑） |
 | `skills/f3dtoolskills/SKILL.md` | 方法论 | 给 agent 的探索工作流 + 工程纪律 |
 | `skills/f3dtoolskills/reference/api_pitfalls.md` | 方法论 | Fusion Python 3.14 API 坑位表（每条附正确写法） |
 | `skills/f3dtoolskills/reference/workflow.md` | 方法论 | 远程链路架构、坐标系三层结构、导出契约、调试 |
