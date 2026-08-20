@@ -4,88 +4,134 @@
 :root{--bg:#f6f7f9;--card:#fff;--fg:#1c2128;--sub:#5a6472;--line:#e3e6ea;--acc:#3b82f6;--ok:#16a34a}
 html.dark{--bg:#111418;--card:#1a1f26;--fg:#e6e9ee;--sub:#8b94a1;--line:#2a313a;--acc:#60a5fa;--ok:#4ade80}
 *{box-sizing:border-box}body{margin:0;font:14px/1.7 system-ui,'Segoe UI','Microsoft YaHei';background:var(--bg);color:var(--fg)}
-.wrap{max-width:760px;margin:0 auto;padding:32px 20px}
+.wrap{max-width:840px;margin:0 auto;padding:32px 20px}
 h1{font-size:18px;margin:0 0 4px}.sub{color:var(--sub);font-size:13px;margin-bottom:20px}
-details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
-summary{cursor:pointer;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:10px;list-style:none}
-summary::-webkit-details-marker{display:none}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:18px}
+h2{font-size:14px;margin:0 0 10px;color:var(--sub)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{border:1px solid var(--line);padding:4px 10px;text-align:left}
+th{color:var(--sub);font-weight:600}
+.mono{font-family:Consolas,monospace;color:var(--sub)}
+.val{font-family:Consolas,monospace;font-weight:600}
+/* 特征树 */
+.tree{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 10px}
+.step{margin:0 0 4px}
+.step-head{display:flex;align-items:center;gap:10px;padding:8px 8px;font-weight:600;border-radius:8px}
 .tag{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;border-radius:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700}
-.body{padding:0 16px 14px 60px;border-top:1px solid var(--line)}
-ol{margin:8px 0;padding-left:20px}li{margin:4px 0}
-.v{margin-top:8px;font-size:12.5px;color:var(--ok);background:transparent;border-left:3px solid var(--ok);padding:4px 10px;border-radius:0 6px 6px 0}
-.mono{font-family:Consolas,monospace;color:var(--sub);font-size:12.5px}
-a{color:var(--acc);text-decoration:none}
+.branch{margin-left:24px;padding-left:18px;border-left:2px solid var(--line)}
+.sub-step{position:relative;padding:3px 0 3px 16px;margin-left:22px}
+.sub-step::before{content:'';position:absolute;left:0;top:13px;width:12px;border-top:2px solid var(--line)}
+.step-body{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin:6px 0 10px 52px}
+.step-body .txt{flex:1;min-width:280px}
+.step-body svg{background:var(--bg);border:1px solid var(--line);border-radius:8px;flex-shrink:0}
+.v{font-size:12.5px;color:var(--ok);border-left:3px solid var(--ok);padding:3px 10px;border-radius:0 6px 6px 0;margin:6px 0}
+.kv{color:var(--sub)}
 </style></head><body><div class="wrap">
 <h1>3D 打印轴承 · 构建步骤</h1>
-<div class="sub">孔内成型 · gen_bearing_full.py · 点击大步骤展开小步骤 · 验收点标绿</div>
+<div class="sub">孔内成型 · gen_bearing_full.py · 特征树全展开 · 剖面图按 ⌀16 预设实尺寸绘制</div>
 
-<details open><summary><span class="tag">S0</span>输入与配方派生</summary><div class="body">
-<ol>
-<li>读设计选择集里的圆柱孔面（无则自愈：删旧组件反推孔签名）</li>
-<li>反读基准系：轴向 u / 孔口 A0 / 半径 R_h / 深度 D_h（椭圆环缘定向，面积法在斜孔下不准）</li>
-<li>文档属性 <span class="mono">F3DToolSkills</span> 组参数覆盖（N_BALLS/DBALL/CLR/RFILLET）</li>
-<li>配方派生：R_track=R_h−δ−壁厚、R1–R5、窝 rg=球/2+clr、球数 N 公式（θ口/θ窝/θ球 取 max）</li>
-</ol>
-<div class="v">验收：孔深 ≥ 球径+2clr+1.1；两端环缘为正圆（斜孔拒绝）</div>
-</div></details>
+<div class="panel"><h2>配方预设参数（⌀16×4 宿主）</h2>
+<table>
+<tr><th>外参</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
+<tr><td>孔径 R_h</td><td class="val">8.0</td><td>窝半径 rg</td><td class="mono">DBALL/2+CLR</td><td class="val">1.391</td></tr>
+<tr><td>孔深 D_h</td><td class="val">4.0</td><td>球道 R_track</td><td class="mono">R_h−δ−t_壁</td><td class="val">5.2</td></tr>
+<tr><td>球径 DBALL</td><td class="val">2.381 (3/32″)</td><td>R1 内盘外</td><td class="mono">R_track−δ</td><td class="val">4.4</td></tr>
+<tr><td>窝间隙 CLR</td><td class="val">0.2 (FDM)</td><td>R2 / R3 中环</td><td class="mono">R1+0.3 / R_track+0.5</td><td class="val">4.7 / 5.7</td></tr>
+<tr><td>偏心沉 δ</td><td class="val">0.8</td><td>R4 / R5 外环</td><td class="mono">R3+0.3 / R_h</td><td class="val">6.0 / 8.0</td></tr>
+<tr><td>环厚 t_ring</td><td class="val">1.0</td><td>球数 N</td><td class="mono">⌊360°/max(θ口,θ窝,θ球)⌋</td><td class="val">7（自动）</td></tr>
+<tr><td>壁厚 t_壁</td><td class="val">2.0</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">2.0</td></tr>
+</table>
+<div class="kv" style="margin-top:8px;font-size:12.5px">改参数：文档属性 F3DToolSkills 组（N_BALLS/DBALL/CLR/RFILLET）→ 重新注入，自愈自动重建。窝上缘≥0.55 打印线：孔深下限 = 球径+2clr+1.1。</div>
+</div>
 
-<details><summary><span class="tag">S1</span>过轴平面</summary><div class="body">
-<ol><li>按孔轴 u 建过轴基准面（构造平面，按名复用）</li></ol>
-<div class="v">验收：平面法向 ⊥ u</div></div></details>
+<div class="tree">
+<div class="step"><div class="step-head"><span class="tag">S0</span>输入与配方派生</div>
+<div class="branch"><div class="sub-step">读设计选择集圆柱孔面（无则自愈：删旧组件反推孔签名）</div>
+<div class="sub-step">反读基准系：轴向 u / 孔口 A0 / R_h / D_h（椭圆环缘定向）</div>
+<div class="sub-step">文档属性参数覆盖 → 配方派生（见上表）</div></div>
+<div class="v">验收：孔深 ≥ 3.88；孔口两端正圆（斜孔拒绝）</div></div>
 
-<details><summary><span class="tag">S2</span>闭环截面草图</summary><div class="body">
-<ol>
-<li>截面三闭环：内盘剖面 / 中环剖面（球道凹口）/ 外环剖面</li>
-<li>r=0 构造线兼旋转轴；全构造线打底，尺寸回溯到 S0 参数</li>
-<li>世界坐标落笔一律 <span class="mono">modelToSketchSpace()</span></li>
-</ol>
-<div class="v">验收：profile 数 in=1、ring=1、out=1</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S1</span>过轴平面</div>
+<div class="branch"><div class="sub-step">按孔轴建过轴构造基准面（按名复用）</div></div>
+<div class="v">验收：平面法向 ⊥ 孔轴</div></div>
 
-<details><summary><span class="tag">S3</span>旋转三体</summary><div class="body">
-<ol><li>三剖面分别 revolve 成内盘 / 中环 / 外环毛坯（3 参 createInput + .operation）</li></ol>
-<div class="v">验收：体积对账（理论公式 vs 实测）；分类命名正确</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S2</span>闭环截面草图</div>
+<div class="branch"><div class="sub-step">三闭环剖面：内盘 / 中环（带球道凹口）/ 外环</div>
+<div class="sub-step">r=0 构造线兼旋转轴；落笔一律 modelToSketchSpace()</div></div>
+<div class="step-body">
+<svg width="360" height="120" viewBox="-6 -6 172 60">
+<rect x="0" y="0" width="44" height="40" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+<rect x="47" y="0" width="10" height="40" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+<rect x="57" y="0" width="3" height="40" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+<rect x="60" y="0" width="20" height="40" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+<circle cx="52" cy="20" r="13.9" fill="none" stroke="#16a34a" stroke-dasharray="3,2"/>
+<line x1="0" y1="-3" x2="86" y2="-3" stroke="#8b94a1" stroke-dasharray="2,2"/>
+<text x="-4" y="-6" font-size="6" fill="#8b94a1">轴</text>
+</svg><div class="txt kv">蓝=三闭环剖面轮廓（半剖，x=半径mm×10）；绿虚线=球窝刀圆（rg@R_track）；上虚线=旋转轴 r=0。</div></div>
+<div class="v">验收：profile 数 in=1、ring=1、out=1</div></div>
 
-<details><summary><span class="tag">S4</span>球窝切割</summary><div class="body">
-<ol>
-<li>球刀 tempBrep 球体（窝半径 rg）</li>
-<li>刀体圆周阵列 ×N（combine 不可阵列——先阵列刀再一次性 Cut）</li>
-<li>对中环一次 Cut 出全部球窝</li>
-</ol>
-<div class="v">验收：窝面型 = Torus 真弧（折线=废品）；窝数 = N</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S3</span>旋转三体</div>
+<div class="branch"><div class="sub-step">三剖面分别 revolve → 内盘 / 中环 / 外环毛坯（3 参 createInput+.operation）</div></div>
+<div class="step-body">
+<svg width="360" height="120" viewBox="-6 -6 172 60">
+<rect x="0" y="0" width="44" height="40" fill="#9ad0a8"/>
+<rect x="47" y="0" width="13" height="40" fill="#e8c98a"/>
+<rect x="60" y="0" width="20" height="40" fill="#b9c4d0"/>
+</svg><div class="txt kv">内盘 ⌀8.8 × 4 ｜ 中环 R2–R3 ｜ 外环 R4–R5（随后融入宿主）。体积对账（理论公式 vs 实测）。</div></div>
+<div class="v">验收：三体体积 = 理论值</div></div>
 
-<details><summary><span class="tag">S5</span>装球口（V 形凸雕）</summary><div class="body">
-<ol>
-<li>切平面三点式挂草图参考点（防圆角断链）</li>
-<li>楔形草图 → 凸雕 V 口（开口朝 +Y 侧）</li>
-</ol>
-<div class="v">验收：凹陷方向（质心径向 &lt; R3）；连续区面法向校验</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S4</span>球窝切割</div>
+<div class="branch"><div class="sub-step">球刀 tempBrep（r=rg）→ 圆周阵列 ×N → 一次性 Cut 中环</div></div>
+<div class="step-body">
+<svg width="360" height="120" viewBox="-6 -6 172 60">
+<rect x="47" y="0" width="13" height="40" fill="#e8c98a"/>
+<circle cx="52" cy="20" r="13.9" fill="var(--bg)" stroke="#16a34a"/>
+</svg><div class="txt kv">窝=r g 圆周均布；窝心 z=2.0。<b>窝面必须是 Torus 真弧</b>（折线=废品，凸雕/切割参数错的典型症状）。</div></div>
+<div class="v">验收：窝面型 Torus ×N；窝数 = N</div></div>
 
-<details><summary><span class="tag">S6</span>标准球 + 圆周阵列</summary><div class="body">
-<ol>
-<li>tempBrep 标准球（球心 z=孔深/2，骑 R_track 圆）</li>
-<li>圆周阵列 ×N（ObjectCollection 入参）</li>
-</ol>
-<div class="v">验收：球心共面 z=D_h/2；球数 = N</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S5</span>装球口（V 形凸雕）</div>
+<div class="branch"><div class="sub-step">切平面三点式挂草图参考点（防圆角断链）→ 楔草图 → 凹陷凸雕</div></div>
+<div class="step-body">
+<svg width="360" height="120" viewBox="-6 -6 172 60">
+<rect x="47" y="0" width="13" height="40" fill="#e8c98a"/>
+<polygon points="60,0 60,8 66,4" fill="var(--bg)" stroke="#d97706"/>
+</svg><div class="txt kv">V 口开在中环外壁（+Y 侧），钢球从此滑入；开口 90°、δ0.8。</div></div>
+<div class="v">验收：凹陷方向（质心径向 &lt; R3）；连续区面法向</div></div>
 
-<details><summary><span class="tag">S7</span>口棱圆角</summary><div class="body">
-<ol>
-<li>边集筛选：凹陷面 ∩ 球窝面交界（每球位 2 条，不是 V 口侧棱）</li>
-<li>一个特征全倒（阵列复制不了圆角——先阵列后圆角）</li>
-</ol>
-<div class="v">验收：圆角面积 = 1.192×2/球位</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S6</span>标准球 + 圆周阵列</div>
+<div class="branch"><div class="sub-step">tempBrep 标准球（球心骑 R_track、z=D_h/2）→ 阵列 ×N（ObjectCollection 入参）</div></div>
+<div class="step-body">
+<svg width="360" height="140" viewBox="-16 -26 192 90">
+<rect x="0" y="0" width="44" height="40" fill="#9ad0a8"/>
+<rect x="47" y="0" width="13" height="40" fill="#e8c98a"/>
+<circle cx="52" cy="20" r="13.9" fill="var(--bg)"/>
+<rect x="60" y="0" width="20" height="40" fill="#b9c4d0"/>
+<circle cx="52" cy="20" r="11.9" fill="#4a90d9"/>
+</svg><div class="txt kv">蓝=⌀2.381 钢球（不打印，打印时 no3dprint 隐藏）。球心严格共面 z=2.0。</div></div>
+<div class="v">验收：球心共面 z=D_h/2；球数 = N</div></div>
 
-<details><summary><span class="tag">S8</span>宿主融合</summary><div class="body">
-<ol><li>外环 JOIN 进宿主；融合特征签名含宿主名（防同径多孔互清杀）</li></ol>
-<div class="v">验收：宿主上 Torus 面 ×1</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S7</span>口棱圆角</div>
+<div class="branch"><div class="sub-step">边集 = 凹陷面∩球窝面交界（每球位 2 条，非 V 口侧棱）→ 一个特征全倒 r1</div></div>
+<div class="v">验收：圆角面积 = 1.192×2/球位</div></div>
 
-<details><summary><span class="tag">S9</span>整理与验收</summary><div class="body">
-<ol>
-<li>球自然序重命名（球01…球NN，无 "(1)" 后缀）</li>
-<li>脚手架收起：草图 isVisible=False、构造面灭灯</li>
-<li>选择集：no3dprint（全部球，导出打印时一键隐藏；root 视图 occ 收集）</li>
-<li>verify 汇总 + 生成 HTML 报告（桌面 + <a href="/report">/report</a>）</li>
-</ol>
-<div class="v">验收：总结论 PASS ✓ 才算交付；幂等重跑两轮一致</div></div></details>
+<div class="step"><div class="step-head"><span class="tag">S8</span>宿主融合</div>
+<div class="branch"><div class="sub-step">外环 JOIN 进宿主；融合特征签名含宿主名（防同径多孔互清杀）</div></div>
+<div class="step-body">
+<svg width="360" height="140" viewBox="-16 -26 192 90">
+<rect x="-10" y="0" width="96" height="40" fill="#d5dbe2"/>
+<rect x="0" y="0" width="44" height="40" fill="#9ad0a8"/>
+<rect x="47" y="0" width="13" height="40" fill="#e8c98a"/>
+<circle cx="52" cy="20" r="11.9" fill="#4a90d9"/>
+</svg><div class="txt kv">灰=宿主 ⌀24×4（外环区域已并入宿主，浏览器树无外环节点）。</div></div>
+<div class="v">验收：宿主上 Torus 面 ×1</div></div>
 
-<div class="sub" style="margin-top:16px">改参数 → 文档属性 → 重新注入（自愈自动重建）｜TeamMaoLab · F3DToolSkills</div>
+<div class="step"><div class="step-head"><span class="tag">S9</span>整理与验收</div>
+<div class="branch"><div class="sub-step">球自然序重命名（球01…，无 "(1)" 后缀）</div>
+<div class="sub-step">脚手架收起：草图隐藏、构造面灭灯</div>
+<div class="sub-step">no3dprint 选择集（root 视图收全部球）</div>
+<div class="sub-step">verify 汇总 → HTML 报告（<a href="/report" style="color:var(--acc)">/report</a>）</div></div>
+<div class="v">验收：总结论 PASS ✓；幂等重跑两轮一致</div></div>
+</div>
+
+<div class="sub" style="margin-top:16px">TeamMaoLab · F3DToolSkills · skills/3dprint-bearing</div>
 </div></body></html>
