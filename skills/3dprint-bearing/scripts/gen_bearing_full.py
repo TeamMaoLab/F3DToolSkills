@@ -925,7 +925,7 @@ th{{background:#eef2f7}} .ok{{color:#1a9e55;font-weight:600}} .mono{{font-family
     out = _os_m.path.join(out_dir, "bearing_report.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
-    return "file:///" + out.replace("\\", "/")
+    return "http://127.0.0.1:9099/report  (" + out + ")"
 
 
 try:

@@ -521,6 +521,28 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         try:
+            # ---- 报告伺服（HTML 直出，给 agent 客户端 webview 用）----
+            if path == '/report':
+                _home = os.path.expanduser('~')
+                _cands = [
+                    os.path.join(_home, 'Desktop', 'bearing_report.html'),
+                    os.path.join(_home, 'OneDrive', 'Desktop', 'bearing_report.html'),
+                    os.path.join(os.environ.get('TEMP', '/tmp'), 'f3d_reports',
+                                 'bearing_report.html'),
+                ]
+                _rp = next((p for p in _cands if os.path.isfile(p)), None)
+                if not _rp:
+                    self._json({'ok': False,
+                                'error': '尚无报告：先跑一次 gen_bearing_full.py'}, 404)
+                    return
+                with open(_rp, encoding='utf-8') as _rf:
+                    _body = _rf.read().encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(_body)))
+                self.end_headers()
+                self.wfile.write(_body)
+
             # ---- 纯 Python 端点（不走队列，后台线程直接执行）----
             if path == '/ping':
                 self._json({'ok': True, 'msg': 'F3DToolSkillsEndpoint 运行中',
