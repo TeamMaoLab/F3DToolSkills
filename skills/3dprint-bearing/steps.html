@@ -45,7 +45,7 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="panel">
 <div class="head"><span class="tag">S2</span>关键截面草图 · 参数化构造复现　<span id="sk2-verify" style="font:12px Consolas,monospace;color:var(--sub)">对照中…</span></div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
-<div class="note">与 Fusion 同一套构造逻辑：45° 倒角=刀圆 135° 切点切线（t=r_g/√2，回到 R1/R4 偏移 2t−δ）· 内外环各带球道弧 · 竖直点划线 x=0 即 r=0 旋转轴 · 改上方参数全图重算</div>
+<div class="note">构造顺序：①r=0 轴与深度界线 ②刀圆（R_track, z_B, r_g）③内盘闭环（R1→45°切线切刀圆→左弧→切回）④中环 R2..R3 ⑤外环闭环（同构镜像）⑥球 ⌀D_b · 蓝=轮廓 灰虚=构造 点划=中心线 · 改参数全图重算</div>
 <div class="v">验收：profile 数 in=1、ring=1、out=1</div>
 </div>
 
@@ -209,69 +209,70 @@ async function verifyVsFusion(){
 function drawS2(){
  const p=P(),d=derive(p),cv=$('sk2');
  const model=modelCurves(p,d);
- const colors={'内盘闭环':'#3b82f6','中环闭环':'#0e9494','外环闭环':'#8b5cf6','球窝刀-草图':'#16a34a','球-⌀2.38-草图':'#2563eb'};
  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
- const pad={l:56,r:28,t:30,b:46};
- const Dh=p.Dh;
- const sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.5)/(Dh+3));
- const H=Math.round(pad.t+pad.b+Dh*sc+10);
+ const pad={l:56,r:28,t:30,b:48};
+ const sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.5)/(p.Dh+3));
+ const H=Math.round(pad.t+pad.b+p.Dh*sc+10);
  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
+ // 面板固定白底（制图风格，不随暗色）
+ cv.style.background='#fff';
  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
- const dark=document.documentElement.classList.contains('dark');
- const X=r=>pad.l+r*sc, Y=z=>pad.t+z*sc; // z=深度向下（模型 y=-z）
- // 网格
- ctx.strokeStyle=dark?'#1d232b':'#eef0f3';ctx.lineWidth=1;
- for(let r=0;r<=d.R5;r++){ctx.beginPath();ctx.moveTo(X(r),pad.t-8);ctx.lineTo(X(r),H-pad.b+8);ctx.stroke();}
- for(let z=0;z<=Math.ceil(Dh);z++){ctx.beginPath();ctx.moveTo(pad.l-10,Y(z));ctx.lineTo(W-pad.r+10,Y(z));ctx.stroke();}
- // 中心线（点划）
- ctx.strokeStyle='#e879f9';ctx.setLineDash([12,3,3,3]);ctx.lineWidth=1;
- ctx.beginPath();ctx.moveTo(X(0),pad.t-16);ctx.lineTo(X(0),H-pad.b+16);ctx.stroke();      // r=0 旋转轴
- ctx.beginPath();ctx.moveTo(pad.l-16,Y(d.zB));ctx.lineTo(W-pad.r+16,Y(d.zB));ctx.stroke(); // z_B
- ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-16);ctx.lineTo(X(d.Rt),H-pad.b+16);ctx.stroke();// R_track
+ const X=r=>pad.l+r*sc, Y=z=>pad.t+z*sc;
+ // 网格（浅蓝格纸，1mm）
+ ctx.strokeStyle='#dce9f7';ctx.lineWidth=1;
+ for(let r=0;r<=d.R5;r++){ctx.beginPath();ctx.moveTo(X(r)+.5,pad.t-8);ctx.lineTo(X(r)+.5,H-pad.b+8);ctx.stroke();}
+ for(let z=0;z<=Math.ceil(p.Dh);z++){ctx.beginPath();ctx.moveTo(pad.l-10,Y(z)+.5);ctx.lineTo(W-pad.r+10,Y(z)+.5);ctx.stroke();}
+ // 中心线（点划灰红）
+ ctx.strokeStyle='#e58fb1';ctx.setLineDash([12,3,3,3]);
+ ctx.beginPath();ctx.moveTo(X(0),pad.t-18);ctx.lineTo(X(0),H-pad.b+18);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(pad.l-16,Y(d.zB));ctx.lineTo(W-pad.r+16,Y(d.zB));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-18);ctx.lineTo(X(d.Rt),H-pad.b+18);ctx.stroke();
  ctx.setLineDash([]);
- ctx.fillStyle='#e879f9';ctx.font='10px Consolas,monospace';
- ctx.fillText('r=0 旋转轴',X(0)+4,pad.t-6);
- ctx.fillText('R_track='+d.Rt.toFixed(2),X(d.Rt)+4,pad.t-6);
+ ctx.fillStyle='#d06a96';ctx.font='10px Consolas,monospace';
+ ctx.fillText('r=0',X(0)+3,pad.t-7);
+ ctx.fillText('R_track='+d.Rt.toFixed(2),X(d.Rt)+3,pad.t-7);
  ctx.textAlign='right';ctx.fillText('z_B='+d.zB.toFixed(1),pad.l-8,Y(d.zB)-4);ctx.textAlign='left';
- // 模型曲线渲染（唯一几何源：line 直连，arc 过 mid 中角采样）
+ // 构造层：刀圆（灰虚线圆+直径线）
+ ctx.strokeStyle='#9fb3c8';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+ ctx.beginPath();ctx.arc(X(d.Rt),Y(d.zB),d.rg*sc,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(X(d.Rt-d.rg),Y(d.zB));ctx.lineTo(X(d.Rt+d.rg),Y(d.zB));ctx.stroke();
+ ctx.setLineDash([]);
+ // 轮廓层：三闭环统一 MakerJs 蓝（球深蓝压顶）
  const TAU=Math.PI*2;
- function drawCurves(name,curves,col,dashed){
-  ctx.strokeStyle=col;ctx.lineWidth=name.startsWith('球-')?2.4:2;
-  ctx.setLineDash(dashed?[6,4]:[]);
+ function strokeCurves(curves,col,w){
+  ctx.strokeStyle=col;ctx.lineWidth=w;
   for(const c of curves){
    ctx.beginPath();
-   if(c.t==='line'){
-    ctx.moveTo(X(c.a[0]),Y(-c.a[1]));ctx.lineTo(X(c.b[0]),Y(-c.b[1]));
-   }else{
+   if(c.t==='line'){ctx.moveTo(X(c.a[0]),Y(-c.a[1]));ctx.lineTo(X(c.b[0]),Y(-c.b[1]));}
+   else{
     const cx=X(c.c[0]),cy=Y(-c.c[1]),r=c.r*sc;
-    let a0=Math.atan2(-( -c.a[1]-(-c.c[1])), c.a[0]-c.c[0]); // canvas 角（y 翻转）
-    // 直接算：模型 y-up 角 → canvas 角 = 取负
     const ang=q=>-Math.atan2(q[1]-c.c[1],q[0]-c.c[0]);
-    a0=ang(c.a);let a1=ang(c.b);
-    const midT=-((c.mid||180)*Math.PI/180); // 目标中角（canvas 系）
-    let delta=(a1-a0)%TAU;if(delta<0)delta+=TAU;            // 正向
-    const midPos=a0+delta/2;
-    const diffP=Math.abs(((midPos-midT)%TAU+TAU)%TAU);const dp=Math.min(diffP,TAU-diffP);
-    const diffN=Math.abs((((a0-delta/2)-midT)%TAU+TAU)%TAU);const dn=Math.min(diffN,TAU-diffN);
-    if(dn<dp)delta-=TAU;                                      // 反向更贴近目标中角则反向
-    const N=32;
+    const a0=ang(c.a);let a1=ang(c.b);
+    const midT=-((c.mid||180)*Math.PI/180);
+    let delta=(a1-a0)%TAU;if(delta<0)delta+=TAU;
+    const near=(x)=>{let v=((x-midT)%TAU+TAU)%TAU;return Math.min(v,TAU-v);};
+    if(near(a0-delta/2)<near(a0+delta/2))delta-=TAU;
     ctx.moveTo(cx+r*Math.cos(a0),cy+r*Math.sin(a0));
-    for(let i=1;i<=N;i++){const a=a0+delta*i/N;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+    for(let i=1;i<=40;i++){const a=a0+delta*i/40;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
    }
    ctx.stroke();}
-  ctx.setLineDash([]);}
- // 层级：构造线垫底 → 三闭环 → 球最上（重叠曲线后画者赢）
- const order=['球窝刀-草图','外环闭环','内盘闭环','中环闭环','球-⌀2.38-草图'];
- for(const name of order){const dashed=name==='球窝刀-草图';drawCurves(name,model[name],colors[name]||'#888',dashed);}
- // R 刻度尺
- ctx.fillStyle=dark?'#8b94a1':'#5a6472';ctx.font='10px Consolas,monospace';ctx.textAlign='center';
+ }
+ strokeCurves(model['内盘闭环'],'#1e88e5',2);
+ strokeCurves(model['中环闭环'],'#1e88e5',2);
+ strokeCurves(model['外环闭环'],'#1e88e5',2);
+ strokeCurves(model['球-⌀2.38-草图'],'#0d47a1',2.4);
+ // 尺寸：R 刻度尺（底）+ D_h（左）
+ ctx.strokeStyle='#78909c';ctx.fillStyle='#607d8b';ctx.font='10px Consolas,monospace';
  const yr=H-pad.b+22;
- [[0,'0'],[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>{
-  ctx.strokeStyle=dark?'#8b94a1':'#5a6472';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5);ctx.stroke();
-  ctx.fillText(l+'='+r.toFixed(1),X(r),yr+16);});
  ctx.beginPath();ctx.moveTo(X(0),yr);ctx.lineTo(X(d.R5),yr);ctx.stroke();
+ [[0,'0'],[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>{
+  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5);ctx.stroke();
+  ctx.textAlign='center';ctx.fillText(l+'='+r.toFixed(1),X(r),yr+16);});
  ctx.textAlign='left';
+ ctx.beginPath();ctx.moveTo(X(0)-12,Y(0));ctx.lineTo(X(0)-12,Y(p.Dh));ctx.stroke();
+ ctx.save();ctx.translate(X(0)-16,Y(p.Dh/2));ctx.rotate(-Math.PI/2);
+ ctx.textAlign='center';ctx.fillText('D_h='+p.Dh.toFixed(1),0,0);ctx.restore();
 }
+
 
 </script></body></html>
