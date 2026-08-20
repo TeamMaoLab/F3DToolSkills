@@ -265,9 +265,10 @@ function drawS2(){
  ctx.strokeStyle='#78909c';ctx.fillStyle='#607d8b';ctx.font='10px Consolas,monospace';
  const yr=H-pad.b+22;
  ctx.beginPath();ctx.moveTo(X(0),yr);ctx.lineTo(X(d.R5),yr);ctx.stroke();
- [[0,'0'],[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>{
-  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5);ctx.stroke();
-  ctx.textAlign='center';ctx.fillText(l+'='+r.toFixed(1),X(r),yr+16);});
+ // 近邻刻度标签两行交错（R1/R2、R3/R4 仅隔0.3mm）
+ [[0,'0',0],[d.R1,'R1',0],[d.R2,'R2',1],[d.R3,'R3',0],[d.R4,'R4',1],[d.R5,'R5',0]].forEach(([r,l,row])=>{
+  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5+row*13);ctx.stroke();
+  ctx.textAlign='center';ctx.fillText(l+'='+r.toFixed(1),X(r),yr+16+row*13);});
  ctx.textAlign='left';
  ctx.beginPath();ctx.moveTo(X(0)-12,Y(0));ctx.lineTo(X(0)-12,Y(p.Dh));ctx.stroke();
  ctx.save();ctx.translate(X(0)-16,Y(p.Dh/2));ctx.rotate(-Math.PI/2);
