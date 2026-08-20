@@ -45,12 +45,14 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="note">构造顺序：①r=0 轴与深度界线 ②刀圆（R_track, z_B, r_g）③内盘闭环（R1→45°切线切刀圆→左弧→切回）④中环 R2..R3 ⑤外环闭环（同构镜像）⑥球 ⌀D_b · 蓝=轮廓 灰虚=构造 点划=中心线 · 改参数全图重算 · 验收：profile 数 in=1、ring=1、out=1</div>
 </div>
 
-<div class="panel"><h2>全流程树（S0–S9）</h2>
+<div class="panel"><h2>全流程树（S0–S7）</h2>
 <div class="step-head"><span class="tag">S0</span>输入与配方派生</div>
 <div class="branch"><div class="sub-step">读设计选择集圆柱孔面（无则自愈：删旧组件反推孔签名）</div>
 <div class="sub-step">反读基准系：轴 u / 孔口 A0 / R_h / D_h · 文档属性参数覆盖</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S1</span>过轴平面</div>
 <div class="branch"><div class="sub-step">按孔轴建过轴构造基准面（按名复用）· 验收：法向 ⊥ 孔轴</div></div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S2</span>闭环截面草图</div>
+<div class="branch"><div class="sub-step">三闭环 + r=0 真线兼旋转轴（即上方活草图）· 验收：profile 数 in=1、ring=1、out=1</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S3</span>旋转三体</div>
 <div class="branch"><div class="sub-step">三闭环 revolve → 内盘/中环/外环（3 参 createInput+.operation）· 验收：体积=理论值</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S4</span>球窝切割</div>
@@ -58,9 +60,9 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="sub-step">验收：窝面 Torus/Sphere 真弧 ×N</div></div>
 <div class="step-head" style="margin-top:6px"><span class="tag">S5</span>装球口 V 形凸雕</div>
 <div class="branch"><div class="sub-step">三点式切平面 → 楔草图 → 凹陷凸雕（+Y 侧）· 验收：质心径向 &lt; R3</div></div>
-<div class="step-head" style="margin-top:6px"><span class="tag">S6+S7</span>放球 + 口棱圆角</div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S6</span>放球 + 口棱圆角</div>
 <div class="branch"><div class="sub-step">tempBrep 球 ×N（root 视图入 no3dprint）· 圆角边=凹面∩窝面交界每球位 2 条 · 面积 1.192×2/位</div></div>
-<div class="step-head" style="margin-top:6px"><span class="tag">S9</span>整理与验收</div>
+<div class="step-head" style="margin-top:6px"><span class="tag">S7</span>整理与验收</div>
 <div class="branch"><div class="sub-step">球自然序重命名 · 脚手架收起 · verify 汇总 → <a href="/report" style="color:var(--acc)">HTML 报告 /report</a> · 幂等重跑两轮一致</div></div>
 </div>
 <div class="sub">TeamMaoLab · F3DToolSkills · skills/3dprint-bearing</div>
