@@ -192,9 +192,12 @@ async function verifyVsFusion(){
   const fus=(data.sketches[name]||{}).curves; if(!fus){continue;}
   total+=fus.length;
   // 端点多重集比对（line/arc 都比端点+圆心+半径）
-  const norm=c=>{ if(c.t==='line'||c.t==='L')return 'L:'+[c.a||c[1],c.b||c[2]].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
-   const cc=c.c||c[1],aa=c.a||c[2],bb=c.b||c[3],r=c.r||c[4];
-   return 'A:'+cc.map(v=>+v.toFixed(2))+'|'+[aa,bb].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+r).toFixed(2);};
+  const norm=c=>{ // 对象形态 {t,a,b,c,r} / Fusion dump 数组形态 ['L',a,b] / ['A',c,a,b,r]
+   if(Array.isArray(c)){
+    if(c[0]==='L')return 'L:'+[c[1],c[2]].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
+    return 'A:'+c[1].map(v=>+v.toFixed(2))+'|'+[c[2],c[3]].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+c[4]).toFixed(2);}
+   if(c.t==='line')return 'L:'+[c.a,c.b].map(q=>q.map(v=>+v.toFixed(2))).sort().join('|');
+   return 'A:'+c.c.map(v=>+v.toFixed(2))+'|'+[c.a,c.b].map(q=>q.map(v=>+v.toFixed(2))).sort().join(';')+'|'+(+c.r).toFixed(2);};
   const ms=new Map(); model[name].forEach(c=>{const k=norm(c); ms.set(k,(ms.get(k)||0)+1);});
   fus.forEach(c=>{const k=norm(c);
    if(ms.get(k)>0){ms.set(k,ms.get(k)-1);match++;}
