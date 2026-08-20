@@ -104,8 +104,9 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode \
 - **/exec 在 Fusion 主线程执行**（CustomEvent 调度，API 非线程安全），长任务会阻塞 HTTP 响应，超时调大。
 - **/exec 是持久命名空间**：裸变量残留跨请求存活，笔误不报 NameError 会静默命中旧值——
   注入脚本必须自包含（全部常量自带、循环变量带专属后缀）。
-- 端点只有 `/ping /exec /reload`，**刻意不做业务端点**——导出、建模等一切能力都以
-  注入脚本形态实现（应用=脚本，不是新端点）。
+- 端点只有 `/ping /exec /reload` 和三个**内容无关**的伺服路由：`/`（主页）、
+  `/report`（最新构建报告）、`/s/<skill>/<文件>`（应用静态页，从 webroot.txt 指向的
+  skills 目录读取——**页面归属各自 skill**，底座只做通用伺服）。业务能力仍全部走注入脚本。
 - WSL → Windows Fusion：`127.0.0.1:9099` 直通；Fusion 读 WSL 文件走 UNC `\\wsl.localhost\<distro>\...`。
 - **安全**：/exec 即任意代码执行，add-in 只绑本地回环，绝不端口转发到公网。
 

@@ -594,18 +594,34 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         try:
-            # ---- 构建步骤文档（磁盘优先，热更新）----
-            if path == '/steps':
+            # ---- 应用静态页（skill 资产，归属 skill 目录；热更新）----
+            # /s/<skill名>/<文件名>：从 webroot.txt 指向的 skills 目录伺服
+            # webroot.txt（本文件同目录，第一行=skills 根路径）是数据，改它不用重启
+            if path.startswith('/s/'):
                 import os as _o
                 here = _o.path.dirname(_o.path.abspath(__file__))
-                _sp = _o.path.join(here, 'steps.html')
-                if not _o.path.isfile(_sp):
-                    self._json({'ok': False, 'error': 'steps.html 缺失'}, 404)
+                root = here
+                try:
+                    with open(_o.path.join(here, 'webroot.txt'), encoding='utf-8') as wf:
+                        _line = wf.readline().strip()
+                        if _line and _o.path.isdir(_line):
+                            root = _line
+                except Exception:
+                    pass
+                rel = path[3:]
+                if '..' in rel or rel.startswith('/') or not rel:
+                    self._json({'ok': False, 'error': '非法路径'}, 400)
                     return
-                with open(_sp, encoding='utf-8') as _sf:
-                    _sb = _sf.read().encode('utf-8')
+                fp = _o.path.normpath(_o.path.join(root, rel))
+                if not fp.startswith(_o.path.abspath(root)) or not _o.path.isfile(fp):
+                    self._json({'ok': False, 'error': '文件不存在: ' + rel}, 404)
+                    return
+                ctype = 'text/html; charset=utf-8' if fp.endswith(('.html', '.htm')) else (
+                    'image/svg+xml' if fp.endswith('.svg') else 'text/plain; charset=utf-8')
+                with open(fp, 'rb') as ef:
+                    _sb = ef.read()
                 self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Type', ctype)
                 self.send_header('Content-Length', str(len(_sb)))
                 self.end_headers()
                 self.wfile.write(_sb)
