@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>孔内成型球轴承 · 参数化设计器（预设锁死版）</title>
+<style>
+  body { font-family: system-ui, "Microsoft YaHei", sans-serif; margin: 0; background: #eef1f5; color: #24292f; display: flex; }
+  #panel { width: 340px; min-width: 340px; height: 100vh; overflow-y: auto; padding: 12px; box-sizing: border-box; background: #ffffff; border-right: 1px solid #d8dde4; }
+  #main { flex: 1; padding: 14px; overflow-y: auto; }
+  h1 { font-size: 16px; margin: 4px 0 10px; }
+  .grp { font-weight: 600; color: #1f5fb0; margin: 14px 0 4px; font-size: 13px; border-bottom: 1px solid #e4e8ed; padding-bottom: 3px; }
+  .row { display: flex; align-items: center; margin: 5px 0; font-size: 12px; }
+  .row label { flex: 1; }
+  .row .val { color: #b25e00; font-family: monospace; min-width: 46px; text-align: right; }
+  .row input[type=range] { width: 130px; }
+  .row input[type=number] { width: 84px; padding: 2px 6px; border: 1px solid #c8cfd8; border-radius: 4px; background: #fff; color: #24292f; font-family: monospace; font-size: 12px; }
+  .row select { background: #fff; color: #24292f; border: 1px solid #c8cfd8; }
+  .hint { font-size: 11px; color: #7a828c; margin: 2px 0 6px; }
+  .lock { color:#7a828c; font-size:12px; line-height:1.7; font-family:monospace; }
+  #v3d { width: 100%; height: 62vh; border: 1px solid #d8dde4; border-radius: 4px; background: #ffffff; position: relative; }
+  #v3d canvas { display: block; }
+  #legend { position: absolute; right: 8px; top: 8px; font-size: 11px; line-height: 1.6; background: rgba(255,255,255,.82); color:#24292f; padding: 6px 8px; border-radius: 4px; border: 1px solid #e4e8ed; }
+  #status { position:absolute;left:8px;top:8px;font-size:12px;color:#b25e00;background:rgba(255,255,255,.85);border:1px solid #e4e8ed;border-radius:4px;padding:3px 8px;display:none }
+  canvas.c2d { background: #ffffff; border: 1px solid #d8dde4; border-radius: 4px; display: block; }
+  .cap { font-size: 12px; color: #6b7480; margin: 4px 2px; }
+  #derived { font-family: monospace; font-size: 12px; background: #f5f7fa; border: 1px solid #e4e8ed; border-radius: 4px; padding: 8px; line-height: 1.7; }
+  #check { font-size: 12px; line-height: 1.8; font-family: monospace; }
+  .ok { color: #157f2b; } .bad { color: #c42b1c; font-weight: 600; }
+  button { background: #e8f0fb; color: #1f5fb0; border: 1px solid #9dbde6; border-radius: 4px; padding: 6px 14px; margin-top: 10px; cursor: pointer; }
+  .cols { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div id="panel">
+  <h1>⚙ 孔内成型球轴承 · 参数化</h1>
+  <div class="hint">球径选定 → 配方整体锁死（打印精度约束）；自由度只有：孔、球径预设、球数、方位、定位距。</div>
+
+  <div class="grp">① 锚 · 孔（来自实体，任意姿态）</div>
+  <div class="row"><label>孔半径 R_h</label><input type="number" id="Rh" min="8" max="25" step="0.1" value="12.8"></div>
+  <div class="row"><label>孔深 D_h</label><span class="lock">🔒 5.0（3D 打印精度约束，锁定）</span></div>
+
+  <div class="grp">② 球心 · R_track（孔定了下一个就是它）</div>
+  <div class="row"><label>球道分布圆 R_track</label><input type="number" id="Rtrack" min="4" max="22" step="0.1" value="10"></div>
+  <div class="hint">球心到孔轴的径向位置（= 草图1 里 d1 的角色）；须 R_track ≤ R_h−δ−t_wall</div>
+
+  <div class="grp">③ 球径预设（选定即锁全配方）</div>
+  <div class="row"><label>球径 dBall</label>
+    <select id="dBall"><option>2</option><option>2.38</option><option>2.5</option><option>2.8</option><option selected>3</option><option>4</option></select></div>
+  <div class="hint">配方 = ⌀3 实测值（窝+0.05 / δ0.8 / 环厚1 / 壁厚2 / 开口45° / V口90° / 圆角1）按球径等比缩放</div>
+
+  <div class="grp">④ 球数</div>
+  <div class="row"><label>球数自动（公式）</label><input type="checkbox" id="autoN" checked></div>
+  <div class="row"><label>球数 N</label><input type="number" id="N" min="3" max="24" step="1" value="8"></div>
+  <div class="hint">N = ⌊360°/max(θ口,θ窝,θ球)⌋；取消勾选可手动（超出上限会红）</div>
+  <div class="row"><label>自动旋转</label><input type="checkbox" id="spin"></div>
+  <button id="copy">复制参数 JSON</button>
+</div>
+
+<div id="main">
+  <div id="v3d">
+    <div id="status">⚡ 布尔计算中…</div>
+    <div id="legend">
+      <span style="color:#3f8d63">■</span> 内盘　<span style="color:#b98d4e">■</span> 中环　<span style="color:#46689e">■</span> 外环<br>
+      <span style="color:#d96f22">●</span> 球×N　<span style="color:#5b7ea6">⊝</span> 孔参考（线框）<br>
+      轴承与孔同心 · 拖动旋转 · 滚轮缩放
+    </div>
+  </div>
+  <div class="cols">
+    <div>
+      <canvas id="sec" class="c2d" width="680" height="380"></canvas>
+      <div class="cap">过轴截面（轴承自身坐标系，= 广义「草图1」）</div>
+      <div id="check"></div>
+    </div>
+    <div>
+      <canvas id="top" class="c2d" width="380" height="380"></canvas>
+      <div class="cap">轴向视图（同心）</div>
+      <div class="grp">🔒 配方 + 派生（全锁死，只读）</div>
+      <div id="derived"></div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three.module.js",
+    "three-mesh-bvh": "./vendor/three-mesh-bvh.module.js",
+    "three-bvh-csg": "./vendor/three-bvh-csg.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/examples/jsm/controls/OrbitControls.js"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Evaluator, Brush, SUBTRACTION } from 'three-bvh-csg';
+
+const $ = id => document.getElementById(id);
+const IDS = ["Rh", "Rtrack", "dBall", "N"];
+const AUTO = ["autoN"];
+
+// ⌀3 实测配方（锁死；其它球径按 dBall/3 等比缩放长度量）
+const RECIPE3 = { clr:0.05, delta:0.8, tring:1, twall:2, rFillet:1 };
+const P = { Rh:12.8, Rtrack:10, dBall:3, N:8 };
+
+function calc(p) {
+  const k = p.dBall / 3;
+  const r = { clr:RECIPE3.clr*k, delta:RECIPE3.delta*k, tring:RECIPE3.tring*k,
+              twall:RECIPE3.twall*k, halfAng:45, wEdge:90, rFillet:RECIPE3.rFillet*k };
+  const rg = p.dBall/2 + r.clr;
+  const zB = 2.5;                                   // = D_h/2 居中锁定
+  const Rtrack = p.Rtrack;                            // 一等参数：孔定了下一个就是它
+  return {
+    rg, zB, r, Rtrack, Dh: 5,
+    R1: Rtrack - r.delta, R2: Rtrack - r.tring/2, R3: Rtrack + r.tring/2,
+    R4: Rtrack + r.delta, R5: p.Rh,
+    seatDepth: rg - r.delta, gap: r.delta - r.tring/2,
+    pitch: 2*Math.PI*Rtrack/p.N,
+    slotW: 2*(5 - zB),                              // V角90°：2(D_h−zBall)/tan45
+    // 球数公式：N = ⌊2π/max(θ口,θ窝,θ球)⌋（g=口间余隙0.5, c=球间间隙0.3）
+    thSlot: 2*Math.atan(( (2*(5-zB))/2 + 0.5 ) / (Rtrack + r.tring/2)),
+    thSeat: 2*Math.asin(Math.sqrt(Math.max(rg*rg - (r.delta - r.tring/2)**2, 1e-9)) / (Rtrack - r.tring/2)),
+    thBall: 2*Math.asin((p.dBall + 0.3) / (2*Rtrack)),
+    nMax: Math.max(3, Math.floor(2*Math.PI / Math.max(
+            2*Math.atan(((2*(5-zB))/2 + 0.5) / (Rtrack + r.tring/2)),
+            2*Math.asin(Math.sqrt(Math.max(rg*rg - (r.delta - r.tring/2)**2, 1e-9)) / (Rtrack - r.tring/2)),
+            2*Math.asin((p.dBall + 0.3) / (2*Rtrack))) + 1e-9)),
+    fitMax: Rtrack + r.delta + r.twall                       // R_track 适配上限
+  };
+}
+
+function checks(p, d) {
+  const c = [];
+  const add = (ok, txt) => c.push({ok, txt});
+  add(d.Rtrack - d.r.delta > d.rg, `窝不穿透内盘：R_track−δ(${(d.Rtrack-d.r.delta).toFixed(2)}) > rg(${d.rg.toFixed(2)})`);
+  add(p.N <= d.nMax, `球数 N(${p.N}) ≤ 公式上限 ${d.nMax}（θ口${(d.thSlot*180/Math.PI).toFixed(1)}° θ窝${(d.thSeat*180/Math.PI).toFixed(1)}° θ球${(d.thBall*180/Math.PI).toFixed(1)}°）`);
+  add(d.gap > 0.04, `中环径向间隙 δ−t_ring/2 = ${d.gap.toFixed(2)} > 0.04`);
+  add(d.slotW >= p.dBall + 0.1, `口能进球：顶宽 ${d.slotW.toFixed(2)} ≥ 球径+0.1`);
+  add(p.Rtrack <= p.Rh - d.r.delta - d.r.twall + 1e-6, `孔容得下：R_track(${p.Rtrack.toFixed(2)}) ≤ R_h−δ−t_wall(${(p.Rh-d.r.delta-d.r.twall).toFixed(2)})`);
+  return c;
+}
+
+/* ================= 3D ================= */
+let scene, camera, renderer, controls, group;
+const MAT = {
+  inner: new THREE.MeshStandardMaterial({color:0x3f8d63, metalness:.2, roughness:.55, side:THREE.DoubleSide}),
+  outer: new THREE.MeshStandardMaterial({color:0x46689e, metalness:.2, roughness:.55, side:THREE.DoubleSide}),
+  ring:  new THREE.MeshStandardMaterial({color:0xb98d4e, metalness:.15, roughness:.45}),
+  ball:  new THREE.MeshStandardMaterial({color:0xd96f22, metalness:.5, roughness:.35})
+};
+
+function init3D() {
+  const box = $("v3d");
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  camera = new THREE.PerspectiveCamera(45, box.clientWidth/box.clientHeight, .1, 2000);
+  camera.position.set(38, 32, 48);
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(box.clientWidth, box.clientHeight);
+  renderer.setPixelRatio(devicePixelRatio || 1);
+  box.appendChild(renderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 2.5, 0);
+  controls.enableDamping = true;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb9bec6, .95));
+  const d1 = new THREE.DirectionalLight(0xffffff, .8); d1.position.set(50, 60, 30); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x88aaff, .3); d2.position.set(-40, 20, -50); scene.add(d2);
+  window.addEventListener("resize", resize3D);
+  animate();
+}
+function resize3D() {
+  const box = $("v3d");
+  camera.aspect = box.clientWidth/box.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(box.clientWidth, box.clientHeight);
+}
+
+function latheProfile(p, d, side) {
+  const r = d.r, rg = d.rg;
+  const h = r.halfAng*Math.PI/180, S = Math.sin(h), C = Math.cos(h);
+  const V = [];
+  const push = (a, b) => V.push(new THREE.Vector2(a, b));
+  if (side === "ring") {
+    push(d.R2, 0); push(d.R3, 0); push(d.R3, d.Dh); push(d.R2, d.Dh); push(d.R2, 0);
+    return V;
+  }
+  const sgn = side === "in" ? -1 : 1;
+  const RF = side === "in" ? d.R1 : d.R4;
+  const Er = d.Rtrack + sgn*rg*S;
+  const t = Math.abs(Er - RF)/C;
+  const a0 = side === "in" ? 90 + r.halfAng : 90 - r.halfAng;
+  const a1 = side === "in" ? 270 - r.halfAng : -90 + r.halfAng;
+  const stp = side === "in" ? 4 : -4;
+  push(side === "in" ? 0 : d.R5, 0);
+  if (side === "in") push(d.R1, 0); else push(d.R4, 0);
+  push(RF, d.zB + rg*C + t*S);
+  push(Er, d.zB + rg*C);
+  for (let a = a0; side === "in" ? a <= a1 : a >= a1; a += stp)
+    push(d.Rtrack + rg*Math.cos(a*Math.PI/180), d.zB + rg*Math.sin(a*Math.PI/180));
+  push(RF, d.zB - rg*C - t*S);
+  if (side === "in") { push(d.R1, d.Dh); push(0, d.Dh); }
+  else { push(d.R4, d.Dh); push(d.R5, d.Dh); push(d.R5, 0); }
+  return V;
+}
+
+function rebuild3D(p, d) {
+  if (group) {
+    group.traverse(o => o.geometry && o.geometry.dispose());
+    scene.remove(group);
+  }
+  group = new THREE.Group();
+
+  // 孔参考（线框，孔轴 = 世界Y，不随偏心动）
+  const holeEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.CylinderGeometry(p.Rh, p.Rh, d.Dh, 96, 1, true), 30),
+    new THREE.LineBasicMaterial({color:0x5b7ea6}));
+  holeEdges.position.y = d.Dh/2;
+  group.add(holeEdges);
+
+  // 轴承组（中心定位于孔轴 +X 方向 L 处）
+  const bearing = new THREE.Group();   // 与孔同心（L 暂不用）
+  bearing.add(new THREE.Mesh(new THREE.LatheGeometry(latheProfile(p, d, "in"), 128), MAT.inner));
+  bearing.add(new THREE.Mesh(new THREE.LatheGeometry(latheProfile(p, d, "out"), 128), MAT.outer));
+
+  const evaluator = new Evaluator();
+  evaluator.useGroups = false;
+  const garbage = [];
+  let ring = new Brush(new THREE.LatheGeometry(latheProfile(p, d, "ring"), 128), MAT.ring);
+  ring.updateMatrixWorld();
+  // 切楔（方位0烘焙：切向×轴向 V 三角，径向穿过环壁）
+  const wedgeGeom = (() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(-d.slotW/2, d.Dh); shape.lineTo(d.slotW/2, d.Dh); shape.lineTo(0, d.zB); shape.closePath();
+    const g = new THREE.ExtrudeGeometry(shape, {depth: (d.R3 - d.R2) + 4, bevelEnabled: false});
+    const er0 = new THREE.Vector3(1,0,0), et0 = new THREE.Vector3(0,0,-1);
+    g.applyMatrix4(new THREE.Matrix4().makeBasis(et0, new THREE.Vector3(0,1,0), er0)
+                     .setPosition(er0.clone().multiplyScalar(d.R2 - 2)));
+    return g;
+  })();
+  const A0 = 0;   // 装球口方位固定（α0 暂不用）
+  for (let k = 0; k < p.N; k++) {
+    const a = A0 + k*2*Math.PI/p.N;
+    const seat = new Brush(new THREE.SphereGeometry(d.rg, 48, 32), MAT.ring);
+    seat.position.set(d.Rtrack*Math.cos(a), d.zB, -d.Rtrack*Math.sin(a));
+    seat.updateMatrixWorld();
+    let out = evaluator.evaluate(ring, seat, SUBTRACTION);
+    out.material = MAT.ring;
+    if (ring !== out) garbage.push(ring.geometry);
+    garbage.push(seat.geometry);
+    ring = out;
+    const tool = new Brush(wedgeGeom, MAT.ring);
+    tool.matrixAutoUpdate = false;
+    tool.matrix.makeRotationY(a);
+    tool.updateMatrixWorld(true);
+    out = evaluator.evaluate(ring, tool, SUBTRACTION);
+    out.material = MAT.ring;
+    garbage.push(ring.geometry);
+    ring = out;
+  }
+  garbage.push(wedgeGeom);
+  bearing.add(ring);
+  setTimeout(() => garbage.forEach(g => g.dispose()), 0);
+
+  for (let k = 0; k < p.N; k++) {
+    const a = A0 + k*2*Math.PI/p.N;
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(p.dBall/2, 36, 24), MAT.ball);
+    ball.position.set(d.Rtrack*Math.cos(a), d.zB, -d.Rtrack*Math.sin(a));
+    bearing.add(ball);
+  }
+  group.add(bearing);
+  scene.add(group);
+  controls.target.set(0, d.Dh/2, 0);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if ($("spin").checked && group) group.rotation.y += 0.004;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ================= 2D ================= */
+function drawSec(p, d) {
+  const cv = $("sec"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const padL = 56, padR = 30, padT = 40, padB = 58;
+  const s = Math.min((W-padL-padR)/(d.R5+3), (H-padT-padB)/d.Dh);
+  const X = r => padL + r*s, Y = z => H-padB - z*s;
+  const r = d.r, rg = d.rg;
+  ctx.lineWidth = 1.2;
+
+  // ---- 尺寸标注工具 ----
+  const DIM = "#8a5a00", TXT = "#5a636b";
+  const arrow = (x, y, ang) => { ctx.beginPath();
+    ctx.moveTo(x, y); ctx.lineTo(x-7*Math.cos(ang-0.3), y-7*Math.sin(ang-0.3));
+    ctx.moveTo(x, y); ctx.lineTo(x-7*Math.cos(ang+0.3), y-7*Math.sin(ang+0.3)); ctx.stroke(); };
+  const dimH = (xa, xb, y, label, extY1, extY2) => {   // 水平尺寸：两端界线+箭头+文字
+    ctx.strokeStyle = DIM; ctx.fillStyle = DIM; ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(xa, extY1); ctx.lineTo(xa, y); ctx.moveTo(xb, extY2); ctx.lineTo(xb, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke();
+    arrow(xa, y, Math.PI); arrow(xb, y, 0);
+    ctx.fillStyle = TXT; ctx.font = "11px monospace"; ctx.textAlign = "center";
+    ctx.fillText(label, (xa+xb)/2, y-4); ctx.textAlign = "left";
+  };
+  const dimV = (x, ya, yb, label) => {
+    ctx.strokeStyle = DIM; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, ya); ctx.lineTo(x, yb); ctx.stroke();
+    arrow(x, ya, Math.PI/2); arrow(x, yb, -Math.PI/2);
+    ctx.fillStyle = TXT; ctx.font = "11px monospace";
+    ctx.save(); ctx.translate(x-6, (ya+yb)/2); ctx.rotate(-Math.PI/2); ctx.textAlign = "center";
+    ctx.fillText(label, 0, -4); ctx.restore();
+  };
+  const leader = (x, y, tx, ty, label) => {
+    ctx.strokeStyle = TXT; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx, ty); ctx.lineTo(tx + (tx>x?-28:28), ty); ctx.stroke();
+    ctx.fillStyle = TXT; ctx.font = "11px monospace";
+    ctx.textAlign = tx > x ? "left" : "right";
+    ctx.fillText(label, tx + (tx>x?-26:26), ty-4); ctx.textAlign = "left";
+  };
+
+  // ---- 中心线 / 构造（草图1 同款）----
+  ctx.setLineDash([10,4,2,4]); ctx.strokeStyle = "#7a828c"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(d.zB)); ctx.lineTo(X(d.Rtrack), Y(d.zB)); ctx.stroke();   // 球道中心线（轴线→球心，同草图1）
+  ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(d.Dh)); ctx.stroke();            // 轴
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.arc(X(d.Rtrack), Y(d.zB), p.dBall/2*s, 0, 7); ctx.stroke();             // 球 ⌀3 构造圆
+  ctx.setLineDash([]);
+
+  // ---- 三体轮廓（纯线框，无填充）----
+  const h = r.halfAng*Math.PI/180;
+  const Er = d.Rtrack - rg*Math.sin(h), tg = Math.abs(d.Rtrack - rg*Math.sin(h) - d.R1)/Math.cos(h);
+  const drawBody = (color, pts) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(...pts[0]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(...pts[i]);
+    ctx.closePath(); ctx.stroke();
+  };
+  // 内盘
+  const inPts = [[X(0), Y(0)], [X(d.R1), Y(0)], [X(d.R1), Y(d.zB + rg*Math.cos(h) + tg*Math.sin(h))],
+                 [X(Er), Y(d.zB + rg*Math.cos(h))]];
+  for (let a = 90+r.halfAng; a <= 270-r.halfAng; a += 3)
+    inPts.push([X(d.Rtrack + rg*Math.cos(a*Math.PI/180)), Y(d.zB + rg*Math.sin(a*Math.PI/180))]);
+  inPts.push([X(d.R1), Y(d.zB - rg*Math.cos(h) - tg*Math.sin(h))], [X(d.R1), Y(d.Dh)], [X(0), Y(d.Dh)]);
+  drawBody("#2e7d4f", inPts);
+  // 外环
+  const Or = d.Rtrack + rg*Math.sin(h), to = (d.Rtrack + rg*Math.sin(h) - d.R4)/Math.cos(h);
+  const outPts = [[X(d.R5), Y(0)], [X(d.R4), Y(0)], [X(d.R4), Y(d.zB + rg*Math.cos(h) + to*Math.sin(h))],
+                  [X(Or), Y(d.zB + rg*Math.cos(h))]];
+  for (let a = 90-r.halfAng; a >= -90+r.halfAng; a -= 3)
+    outPts.push([X(d.Rtrack + rg*Math.cos(a*Math.PI/180)), Y(d.zB + rg*Math.sin(a*Math.PI/180))]);
+  outPts.push([X(d.R4), Y(d.zB - rg*Math.cos(h) - to*Math.sin(h))], [X(d.R4), Y(d.Dh)], [X(d.R5), Y(d.Dh)]);
+  drawBody("#3a5f96", outPts);
+  // 中环（矩形 + 窝口虚线 + V口槽虚线）
+  ctx.strokeStyle = "#8a6a3a"; ctx.lineWidth = 1.4;
+  ctx.strokeRect(X(d.R2), Y(d.Dh), (d.R3-d.R2)*s, d.Dh*s);
+  ctx.setLineDash([4,3]); ctx.strokeStyle = "#c06060";
+  ctx.strokeRect(X(d.R2), Y(d.Dh), (d.R3-d.R2)*s, (d.Dh-d.zB)*s);
+  ctx.setLineDash([]);
+
+  // ---- 尺寸标注 ----
+  dimV(X(0)-24, Y(0), Y(d.Dh), "D_h=" + d.Dh.toFixed(1));                       // 孔深 5
+  // R_track：直接标在球道中心线上（轴线↔球心），无界线
+  ctx.strokeStyle = DIM; ctx.lineWidth = 1;
+  arrow(X(0), Y(d.zB), Math.PI); arrow(X(d.Rtrack), Y(d.zB), 0);
+  ctx.fillStyle = TXT; ctx.font = "11px monospace";
+  ctx.fillText("R_track=" + d.Rtrack.toFixed(2), X(d.R1*0.42) - 24, Y(d.zB) + 16);
+  dimH(X(d.R2), X(d.R3), Y(0)+22, "t_ring=" + r.tring.toFixed(2), Y(0), Y(0));          // 环厚（底边下）
+  dimH(X(d.R4), X(d.R5), Y(0)+22, "t_wall=" + r.twall.toFixed(2), Y(0), Y(0));           // 壁厚（底边下）
+  // δ（端面距球心）：引线标注，指到下端面点，文字放内盘下部空白区
+  leader(X(d.R1), Y(d.zB - rg*Math.cos(h) - tg*Math.sin(h)),
+         X(d.R1) - 74, Y(0) - 10, "δ=" + r.delta.toFixed(2));
+  leader(X(d.Rtrack-rg), Y(d.zB), X(d.Rtrack-rg)-30, Y(d.zB)-26, "rg=" + rg.toFixed(2) + " (⌀" + (2*rg).toFixed(2) + ")");
+  leader(X(d.Rtrack), Y(d.zB)-8, X(d.Rtrack)+44, Y(d.zB)+30, "球 ⌀" + p.dBall.toFixed(2));
+  // 45°（= 原图 d4）：球心→左上切点半径构造线，角度弧画在中线与半径线之间
+  const Tp = [d.Rtrack - rg*Math.sin(h), d.zB + rg*Math.cos(h)];
+  ctx.setLineDash([10,4,2,4]); ctx.strokeStyle = "#7a828c"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X(d.Rtrack), Y(d.zB)); ctx.lineTo(X(Tp[0]), Y(Tp[1])); ctx.stroke();
+  ctx.setLineDash([]);
+  const rAng = Math.atan2(-(Tp[1]-d.zB), Tp[0]-d.Rtrack);      // 半径线方向（屏幕系，y 翻转）
+  ctx.strokeStyle = DIM;
+  ctx.beginPath(); ctx.arc(X(d.Rtrack), Y(d.zB), 20, 0, rAng, rAng > 0); ctx.stroke();
+  ctx.fillStyle = DIM; ctx.font = "11px monospace";
+  ctx.fillText(r.halfAng.toFixed(0) + "°", X(d.Rtrack) - 8*Math.cos(rAng/2) - 6, Y(d.zB) - 8*Math.sin(rAng/2) - 6);
+  // V口 90° 标注
+  ctx.fillStyle = "#c06060"; ctx.font = "11px monospace";
+  ctx.fillText("V口 90°（虚线区，球心上方打通）", X(d.R2)-10, Y(d.Dh)+16);
+}
+
+function drawTop(p, d) {
+  const cv = $("top"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H/2, s = (W/2-30)/(p.Rh + 2);
+  const A0 = 0;   // 装球口方位固定（α0 暂不用）
+  // 孔（孔心 = 画布中心）
+  ctx.strokeStyle = "#5b7ea6"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, p.Rh*s, 0, 7); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx-5, cy); ctx.lineTo(cx+5, cy); ctx.moveTo(cx, cy-5); ctx.lineTo(cx, cy+5); ctx.stroke();
+  ctx.fillStyle = "#5b7ea6"; ctx.font = "10px sans-serif"; ctx.fillText("孔心=轴承心", cx+7, cy-6);
+  // 轴承（与孔同心）
+  const bx = cx, by = cy;
+  ctx.strokeStyle = "#98a2ad";
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.arc(bx, by, d.R5*s, 0, 7); ctx.stroke();       // 外环外径
+  ctx.beginPath(); ctx.arc(bx, by, d.R4*s, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx, by, d.R1*s, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx, by, d.Rtrack*s, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "#24292f";
+  ctx.beginPath(); ctx.moveTo(bx-5, by); ctx.lineTo(bx+5, by); ctx.moveTo(bx, by-5); ctx.lineTo(bx, by+5); ctx.stroke();
+  for (let k = 0; k < p.N; k++) {
+    const a = A0 + k*2*Math.PI/p.N;
+    ctx.fillStyle = "#d96f22";
+    ctx.beginPath(); ctx.arc(bx + d.Rtrack*s*Math.cos(a), by - d.Rtrack*s*Math.sin(a), p.dBall/2*s, 0, 7); ctx.fill();
+  }
+  const half = Math.atan2(d.slotW/2, d.R3);
+  ctx.strokeStyle = "#c42b1c"; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(bx, by, d.R3*s, -(A0+half), -(A0-half)); ctx.stroke();
+  ctx.lineWidth = 1;
+}
+
+function render2D() {
+  if ($("autoN").checked) P.N = calc(P).nMax;
+  const d = calc(P);
+  $("N").value = P.N;
+  $("N").disabled = $("autoN").checked;
+  // 数值显示在数字输入框内（无需旁挂只读 span）
+  drawSec(P, d); drawTop(P, d);
+  const f = v => (+v).toFixed(2);
+  const r = d.r;
+  $("derived").innerHTML = [
+    `<b>🔒 配方（dBall=${P.dBall} 预设，等比 k=${f(P.dBall/3)}）</b>`,
+    `窝半径 rg = ${f(d.rg)}　窝间隙 = ${f(r.clr)}`,
+    `δ = ${f(r.delta)}　中环厚 = ${f(r.tring)}　外环壁厚 = ${f(r.twall)}`,
+    `开口半角 = 45°　V口角 = 90°　口圆角 r = ${f(r.rFillet)}（3D 不渲染）`,
+    `<b>🔒 派生</b>`,
+        `内盘外径 = ${f(d.R1)}　中环 = ${f(d.R2)}~${f(d.R3)}　外环内径 = ${f(d.R4)}`,
+    `窝深 = ${f(d.seatDepth)}　径向间隙 = ${f(d.gap)}　节距 = ${f(d.pitch)}`,
+    `装球口顶宽 = ${f(d.slotW)}`,
+    `N上限(公式) = ${d.nMax}（θ口${(d.thSlot*180/Math.PI).toFixed(1)}°/θ窝${(d.thSeat*180/Math.PI).toFixed(1)}°/θ球${(d.thBall*180/Math.PI).toFixed(1)}°）`
+  ].join("<br>");
+  const cs = checks(P, d);
+  const nbad = cs.filter(c => !c.ok).length;
+  $("check").innerHTML = `<b>自洽校验（${nbad ? '<span class="bad">'+nbad+' 项不通过</span>' : '<span class="ok">全部通过 ✓</span>'}）</b><br>` +
+    cs.map(c => `<span class="${c.ok?'ok':'bad'}">${c.ok?"✓":"✗"}</span> ${c.txt}`).join("<br>");
+  return d;
+}
+function render3D() {
+  const st = $("status");
+  st.style.display = "block";
+  setTimeout(() => {
+    try { rebuild3D(P, calc(P)); } finally { st.style.display = "none"; }
+  }, 30);
+}
+function render() { render2D(); render3D(); }
+
+let _t3d = null;
+for (const id of IDS) $(id).addEventListener("input", e => {
+  const v = +e.target.value;
+  if (!isNaN(v)) P[id] = v;
+  render2D();
+  clearTimeout(_t3d);
+  _t3d = setTimeout(render3D, 400);
+});
+for (const id of AUTO) $(id).addEventListener("change", () => { render2D(); clearTimeout(_t3d); render3D(); });
+$("copy").addEventListener("click", () => {
+  const d = calc(P);
+  const out = { anchor: { Rh: P.Rh, Dh: 5 },
+                ball_center: { Rtrack: P.Rtrack },           // R_track 一等参数
+                preset: { dBall: P.dBall, recipe: d.r },
+                assembly: { N: P.N, alpha0: 0 },
+                n_formula: { nMax: d.nMax, auto: $("autoN").checked },
+                derived: { Rtrack: d.Rtrack, R1: d.R1, R2: d.R2, R3: d.R3, R4: d.R4,
+                           rg: d.rg, pitch: d.pitch, slotW: d.slotW, zBall: d.zB } };
+  navigator.clipboard.writeText(JSON.stringify(out, null, 2));
+  $("copy").textContent = "已复制 ✓"; setTimeout(()=>$("copy").textContent="复制参数 JSON", 1200);
+});
+init3D();
+render();
+</script>
+</body>
+</html>

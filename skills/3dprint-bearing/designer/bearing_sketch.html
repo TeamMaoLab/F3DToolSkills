@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>自定义球轴承 · 配方草图</title>
+<style>
+  body { margin:0; background:#0f172a; color:#e2e8f0; font:13px/1.6 system-ui,"Microsoft YaHei",sans-serif; }
+  .top { padding:12px 18px; display:flex; align-items:center; gap:22px; flex-wrap:wrap; border-bottom:1px solid #1e293b; }
+  .top h1 { font-size:15px; margin:0; color:#a5b4fc; font-weight:600; }
+  .top .sub { color:#64748b; font-size:12px; }
+  .ctl { display:flex; align-items:center; gap:6px; color:#94a3b8; }
+  select, input[type=range] { accent-color:#7c3aed; }
+  select { background:#1e293b; color:#e2e8f0; border:1px solid #334155; border-radius:5px; padding:2px 6px; }
+  .val { color:#c4b5fd; font-weight:600; min-width:52px; display:inline-block; }
+  .grid { display:grid; grid-template-columns: 520px 280px 440px; gap:14px; padding:14px 18px 4px; align-items:start; }
+  @media (max-width:1280px){ .grid { grid-template-columns: 520px 280px; } }
+  .card { background:#fff; border-radius:10px; padding:4px; }
+  .card canvas { display:block; width:100%; height:auto; }
+  #readout { padding:6px 18px 10px; color:#94a3b8; }
+  #readout b { color:#c4b5fd; }
+  #readout .warn { color:#f59e0b; }
+  #readout .ok { color:#34d399; }
+  table { border-collapse:collapse; margin:6px 0 0; font-size:12px; }
+  th, td { border:1px solid #1e293b; padding:3px 10px; color:#cbd5e1; text-align:left; }
+  th { color:#94a3b8; font-weight:500; }
+  a { color:#818cf8; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>自定义球轴承 · 配方草图</h1>
+  <span class="sub">孔内成型 · 旋转母线 + 装球口楔 + 俯视装配（纯线稿） · 配方与 gen_bearing_full.py 同源</span>
+  <div class="ctl">球径
+    <select id="brgd">
+      <option value="2.38125" selected>⌀2.381 (3/32″)</option>
+      <option value="2.5">⌀2.5</option>
+    </select>
+  </div>
+  <div class="ctl">窝间隙
+    <select id="clrsel">
+      <option value="0.05">0.05 光固化</option>
+      <option value="0.1">0.10</option>
+      <option value="0.15">0.15</option>
+      <option value="0.2" selected>0.20 FDM</option>
+    </select>
+  </div>
+  <div class="ctl">孔径 <input id="eccD" type="range" min="9.4" max="20" step="0.1" value="16" style="width:130px"><span class="val" id="eccD_v">⌀16.0</span></div>
+  <div class="ctl">孔深 <input id="dh" type="range" min="3.6" max="8" step="0.1" value="4" style="width:110px"><span class="val" id="dh_v">4.0</span></div>
+  <span class="sub">统一球径 2.381/2.5（轴承+支撑共用，全局唯一规格）→ 推荐孔深 4</span>
+  <span class="sub"><a href="cycloidal_outer_designer.html">← 返回减速器设计器</a></span>
+</div>
+
+<div class="grid">
+  <div class="card"><canvas id="cvSec" width="520" height="390"></canvas></div>
+  <div class="card"><canvas id="cvWedge" width="280" height="390"></canvas></div>
+  <div class="card"><canvas id="cvTop" width="440" height="390"></canvas></div>
+</div>
+<div id="readout"></div>
+
+<script>
+// ---- 配方（与 cycloidal_outer_designer.bearingOf / gen_bearing_full.py 同源）----
+const DELTA=0.8, TRING=1, TWALL=2;
+let brgBall=2.38125, eccD=16, dh=4, brgClr=0.2;
+
+function calc() {
+  const Rh=eccD/2, Rtrack=Rh-DELTA-TWALL, rg=brgBall/2+brgClr, slotW=dh;   // rg=球/2+窝间隙（打印精度驱动）
+  const R1=Rtrack-DELTA, R2=Rtrack-TRING/2, R3=Rtrack+TRING/2, R4=Rtrack+DELTA;
+  const thKou=2*Math.atan((slotW/2+0.5)/R3);
+  const arg=Math.sqrt(Math.max(rg*rg-(DELTA-TRING/2)**2,0))/R2;
+  const thWo=arg<1?2*Math.asin(arg):NaN, thQiu=2*Math.asin((brgBall+0.3)/(2*Rtrack));
+  const N=(arg<1)?Math.floor(2*Math.PI/Math.max(thKou,thWo,thQiu)):0;
+  return { Rh,Rtrack,rg,slotW,R1,R2,R3,R4,thKou,thWo,thQiu,N,
+           valid: arg<1 && N>=3 && Rtrack>=2.1, lip: dh/2-rg };
+}
+const deg=t=>(t*180/Math.PI).toFixed(1)+'°';
+
+// ---- 尺寸标注小工具（细线 + 端点短斜杠 + 居中文字）----
+function tick(x,y){ ctx.beginPath(); ctx.moveTo(x-3,y+3); ctx.lineTo(x+3,y-3); ctx.stroke(); }
+function dimH(x0,x1,y,label){ ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke(); tick(x0,y); tick(x1,y);
+  ctx.fillStyle='#6d28d9'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(label,(x0+x1)/2,y-4); ctx.textAlign='left'; }
+function dimV(x,y0,y1,label){ ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke(); tick(x,y0); tick(x,y1);
+  ctx.fillStyle='#6d28d9'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.save(); ctx.translate(x+4,(y0+y1)/2); ctx.rotate(-Math.PI/2); ctx.fillText(label,0,0); ctx.restore(); ctx.textAlign='left'; }
+
+// ================= ① 截面配方草图（过孔轴 · 单侧母线 · 旋转 360° 出三体）=================
+function drawSection(B){
+  const cv=document.getElementById('cvSec'); cv.width=520; cv.height=390;
+  ctx=cv.getContext('2d'); ctx.clearRect(0,0,520,390);
+  ctx.fillStyle='#374151'; ctx.font='12px sans-serif';
+  ctx.fillText('① 截面配方草图（过孔轴 · 旋转 360° → 三体）',12,18);
+  if(!B.valid){ ctx.fillStyle='#dc2626'; ctx.font='13px sans-serif';
+    ctx.fillText('⚠ 装不下（R_track 不足或 N<3）',12,44); return; }
+  const zB=dh/2, rg=B.rg, s45=rg*Math.SQRT1_2;
+  const ErIn=B.Rtrack-s45, ErOut=B.Rtrack+s45;
+  const dIn=B.R1-ErIn, dOut=ErOut-B.R4;
+  const finHi=zB+s45+dIn, finLo=zB-s45-dIn, foutHi=zB+s45+dOut, foutLo=zB-s45-dOut;
+  const rMax=B.Rh+1.4, zPad=1.1, mL=64, mR=76, mT=44, mB=86;
+  const s=Math.min((520-mL-mR)/rMax,(390-mT-mB)/(dh+2*zPad));
+  const X=r=>mL+r*s, Y=z=>mT+zPad*s+(dh-z)*s;
+  const poly=(pts)=>{ ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1]))); ctx.closePath(); ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.6; ctx.stroke(); };
+  const arcPts=(t0,t1,n=40)=>{ const a=[]; for(let i=0;i<=n;i++){ const t=t0+(t1-t0)*i/n; a.push([B.Rtrack+rg*Math.cos(t), zB+rg*Math.sin(t)]); } return a; };
+  // 宿主盘体（孔外）
+  poly([[B.Rh,0],[rMax,0],[rMax,dh],[B.Rh,dh]]);
+  // 外环闭环（内缘嵌窝弧+45°切线引出）
+  poly([[B.R4,0],[B.R4,foutLo],[ErOut,zB-s45]].concat(arcPts(-Math.PI/4,Math.PI/4),
+        [[ErOut,zB+s45],[B.R4,foutHi],[B.R4,dh],[B.Rh,dh],[B.Rh,0]]));
+  // 中环闭环（矩形；窝由球刀在 α0 位切→虚线圆）
+  poly([[B.R2,0],[B.R3,0],[B.R3,dh],[B.R2,dh]]);
+  // 内盘闭环（外缘嵌窝弧，到 r=0 轴）
+  poly([[0,0],[B.R1,0],[B.R1,finLo],[ErIn,zB-s45]].concat(arcPts(Math.PI*0.75,Math.PI*1.25),
+        [[ErIn,zB+s45],[B.R1,finHi],[B.R1,dh],[0,dh]]));
+  // 构造线：r=0 旋转轴（点划）、R_track（虚）、球刀 rg 圆（虚）
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1; ctx.setLineDash([9,3,2,3]);
+  ctx.beginPath(); ctx.moveTo(X(0),Y(-zPad+0.5)); ctx.lineTo(X(0),Y(dh+zPad-0.5)); ctx.stroke();
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(X(B.Rtrack),Y(zB)); ctx.lineTo(X(B.Rtrack),Y(-zPad+0.4)); ctx.stroke();
+  ctx.strokeStyle='rgba(217,119,6,0.9)';
+  ctx.beginPath(); ctx.arc(X(B.Rtrack),Y(zB),rg*s,0,2*Math.PI); ctx.stroke();
+  ctx.setLineDash([]);
+  // 球（纯轮廓）
+  ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(X(B.Rtrack),Y(zB),brgBall/2*s,0,2*Math.PI); ctx.stroke();
+  // 区域名
+  ctx.fillStyle='#64748b'; ctx.font='10px sans-serif';
+  ctx.fillText('内盘',X(B.R1*0.40),Y(dh*0.5)+3);
+  ctx.fillText('中环',X(B.R2+0.05),Y(0.35));
+  ctx.fillText('外环',X(B.R4+0.05),Y(0.35));
+  ctx.fillText('盘体',X(B.Rh+0.15),Y(0.35));
+  ctx.fillStyle='#b45309';
+  ctx.fillText('球刀 rg='+rg.toFixed(2),X(B.Rtrack+rg*0.62),Y(zB+rg*1.06));
+  ctx.fillStyle='#475569';
+  ctx.fillText('45°',X(ErIn)-15,Y(zB+s45*0.45));
+  ctx.fillStyle='#6d28d9';
+  ctx.fillText('R_track '+B.Rtrack.toFixed(2),X(B.Rtrack)-24,Y(-zPad+0.42));
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText('↻360°',X(0)-11,Y(dh+zPad-0.62));
+  ctx.fillText('r=0',X(0)-9,Y(-zPad+0.42));
+  // 尺寸标注
+  dimV(X(rMax)+14,Y(dh),Y(0),'D_h '+dh.toFixed(1));
+  dimV(X(0)-14,Y(zB),Y(0),'zB '+zB.toFixed(1));
+  dimH(X(B.R1),X(B.Rtrack),Y(dh+zPad-0.35),'δ '+DELTA.toFixed(1));
+  dimH(X(B.R2),X(B.R3),Y(0)+30,'环厚 '+TRING.toFixed(1));
+  dimH(X(B.R4),X(B.Rh),Y(0)+48,'壁厚 '+TWALL.toFixed(1));
+  // 底部 R 刻度（相邻半径近 → 标签交错两行防重叠）
+  const yb=Y(0)+64; ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1;
+  [['R1',B.R1],['R2',B.R2],['R3',B.R3],['R4',B.R4],['Rh',B.Rh]].forEach(([n,v],i)=>{
+    ctx.beginPath(); ctx.moveTo(X(v),Y(0)); ctx.lineTo(X(v),yb); ctx.stroke(); tick(X(v),yb);
+    ctx.fillStyle='#6d28d9'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(n+' '+v.toFixed(2),X(v),yb+11+(i%2)*12); ctx.textAlign='left';
+  });
+}
+
+// ================= ② 装球口楔草图（α0 切平面）=================
+function drawWedge(B){
+  const cv=document.getElementById('cvWedge'); cv.width=280; cv.height=390;
+  ctx=cv.getContext('2d'); ctx.clearRect(0,0,280,390);
+  ctx.fillStyle='#374151'; ctx.font='12px sans-serif';
+  ctx.fillText('② 装球口楔草图',12,18);
+  ctx.font='10px sans-serif'; ctx.fillStyle='#94a3b8';
+  ctx.fillText('（α0 方位切平面 · 凸雕打穿中环壁）',12,33);
+  if(!B.valid){ ctx.fillStyle='#dc2626'; return; }
+  const slotW=B.slotW, zB=dh/2;
+  const cx=140, yTop=110, yVtx=110+170;                 // 底=端面(上)，顶点=球心等高(下)
+  const halfPx=Math.min(112,slotW*24);
+  const X=t=>cx+t*(halfPx/(slotW/2));
+  // 端面基线（虚）
+  ctx.strokeStyle='#94a3b8'; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(X(-slotW/2-2),yTop); ctx.lineTo(X(slotW/2+2),yTop); ctx.stroke(); ctx.setLineDash([]);
+  // 三角（纯线）
+  ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(X(-slotW/2),yTop); ctx.lineTo(X(slotW/2),yTop); ctx.lineTo(X(0),yVtx); ctx.closePath(); ctx.stroke();
+  // 顶点标记
+  ctx.fillStyle='#1e293b'; ctx.beginPath(); ctx.arc(X(0),yVtx,2.4,0,2*Math.PI); ctx.fill();
+  // 角度弧（90°）
+  ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1;
+  const aL=Math.atan2(yTop-yVtx,X(-slotW/2)-X(0)), aR=Math.atan2(yTop-yVtx,X(slotW/2)-X(0));
+  ctx.beginPath(); ctx.arc(X(0),yVtx,30,aL,aR,false); ctx.stroke();
+  ctx.fillStyle='#6d28d9'; ctx.font='10px sans-serif';
+  ctx.fillText('90°',X(0)+6,yVtx-24);
+  // 标注
+  dimH(X(-slotW/2),X(slotW/2),yTop-22,'slotW '+slotW.toFixed(1)+' = D_h');
+  dimV(X(slotW/2)+24,yTop,yVtx,'D_h−zB = zB');
+  ctx.fillStyle='#475569'; ctx.font='10px sans-serif';
+  ctx.fillText('顶点 = 球心等高（球顺 V 滑入窝）',18,372);
+  ctx.fillStyle='#6d28d9';
+  ctx.fillText('⌀'+eccD.toFixed(1)+'×'+dh.toFixed(1),18,352);
+}
+
+// ================= ③ 俯视装配图（窝+口+球 ×N 圆周阵列）=================
+function drawTop(B){
+  const cv=document.getElementById('cvTop'); cv.width=440; cv.height=390;
+  ctx=cv.getContext('2d'); ctx.clearRect(0,0,440,390);
+  ctx.fillStyle='#374151'; ctx.font='12px sans-serif';
+  ctx.fillText('③ 俯视装配图（窝+口+球 ×N 阵列）',12,18);
+  if(!B.valid){ ctx.fillStyle='#dc2626'; ctx.font='13px sans-serif';
+    ctx.fillText('⚠ 装不下',12,44); return; }
+  const cx=220, cy=204, s=(390-84)/2/(B.Rh+7);
+  const C=(r,a=0)=>[cx+r*s*Math.cos(a), cy-r*s*Math.sin(a)];
+  // 同心圆族（纯线）
+  const ring=(r,dash)=>{ const [x,y]=C(r); ctx.beginPath(); ctx.arc(x,y,r*s,0,2*Math.PI);
+    ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.5; if(dash){ctx.setLineDash([5,4]);} ctx.stroke(); ctx.setLineDash([]); };
+  ring(B.R1); ring(B.R2); ring(B.R3); ring(B.R4); ring(B.Rh);
+  // R_track 构造圆（虚）
+  const [tx,ty]=C(B.Rtrack); ctx.beginPath(); ctx.arc(tx,ty,B.Rtrack*s,0,2*Math.PI);
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  // 中心十字
+  ctx.beginPath(); ctx.moveTo(cx-6,cy); ctx.lineTo(cx+6,cy); ctx.moveTo(cx,cy-6); ctx.lineTo(cx,cy+6);
+  ctx.strokeStyle='#94a3b8'; ctx.stroke();
+  const half=Math.atan(B.slotW/2/B.Rh);
+  for(let k=0;k<B.N;k++){
+    const a=k*2*Math.PI/B.N;
+    const [bx,by]=C(B.Rtrack,a);
+    ctx.beginPath(); ctx.arc(bx,by,brgBall/2*s,0,2*Math.PI);
+    ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.6; ctx.stroke();
+    // 装球口 V 楔两条边（αk 方位）
+    ctx.strokeStyle='rgba(124,58,237,0.8)'; ctx.lineWidth=1;
+    for(const sd of [1,-1]) {
+      const [m0x,m0y]=C(B.Rh,a+sd*half), [m1x,m1y]=C(B.R3,a);
+      ctx.beginPath(); ctx.moveTo(m0x,m0y); ctx.lineTo(m1x,m1y); ctx.stroke();
+    }
+  }
+  // R_track 半径标注线（放 −52°，避开上方半径标签）
+  const [r0x,r0y]=C(0,-0.9), [r1x,r1y]=C(B.Rtrack,-0.9);
+  ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(r0x,r0y); ctx.lineTo(r1x,r1y); ctx.stroke();
+  tick(r0x,r0y); tick(r1x,r1y);
+  ctx.fillStyle='#6d28d9'; ctx.font='10px sans-serif';
+  ctx.fillText('R_track '+B.Rtrack.toFixed(2),(r0x+r1x)/2+6,(r0y+r1y)/2-4);
+  // 半径标签
+  [['Rh',B.Rh,150],['R4',B.R4,120],['R3',B.R3,96],['R2',B.R2,74],['R1',B.R1,52]].forEach(([n,v,a])=>{
+    const [lx,ly]=C(v,a*Math.PI/180);
+    ctx.fillText(n+' '+v.toFixed(2),lx+4,ly);
+  });
+  ctx.fillStyle='#475569';
+  ctx.fillText('球 ⌀'+brgBall.toFixed(2)+' ×'+B.N+'　口宽 slotW='+B.slotW.toFixed(1)+'　α0 起整圈阵列',12,378);
+}
+
+function readout(B){
+  const el=document.getElementById('readout');
+  if(!B.valid){ el.innerHTML='⚠ 当前参数装不下（R_track 不足 / θ窝 无解 / N<3）——试试加大孔径。'; return; }
+  const rgOf=d=>d/2+brgClr, holeMin=d=>'⌀'+(d+7.3+2*brgClr).toFixed(1), dhMin=d=>(d+2*brgClr+1.1).toFixed(1);
+  el.innerHTML =
+    '球⌀<b>'+brgBall.toFixed(3)+'</b>　窝间隙 clr=<b>'+brgClr.toFixed(2)+'</b>　窝 rg=<b>'+B.rg.toFixed(4)+'</b>（球/2+clr）　窝上缘=<b>'+B.lip.toFixed(2)+'</b> '+
+      (B.lip>=0.55?'<span class="ok">✓打印安全</span>':'<span class="warn">⚠薄（建议孔深≥'+dhMin(brgBall)+'）</span>')+
+    '　最小孔=<b>⌀'+(brgBall+7.3+2*brgClr).toFixed(1)+'</b><br>'+
+    'θ口=<b>'+deg(B.thKou)+'</b>　θ窝=<b>'+deg(B.thWo)+'</b>　θ球=<b>'+deg(B.thQiu)+'</b> → 球数 N=<b>'+B.N+'</b>'+
+    '　口宽 slotW=D_h=<b>'+B.slotW.toFixed(1)+'</b>　叠装'+B.N+'球间隔 '+((2*Math.PI*B.Rtrack/B.N)-brgBall).toFixed(2)+' mm'+
+    '<table><tr><th>球径</th><th>窝 rg@clr'+brgClr.toFixed(2)+'</th><th>最小孔</th><th>孔深下限</th><th>N @⌀16×5</th><th>N @⌀16×4</th></tr>'+
+    [2.38125,2.5].map(d=>
+      '<tr><td>⌀'+d.toFixed(3)+(d===brgBall?' ◀':'')+'</td><td>'+rgOf(d).toFixed(2)+'</td><td>'+holeMin(d)+'</td><td>'+dhMin(d)+'</td><td>'+6+'</td><td>'+7+'</td></tr>').join('')+'</table>'+
+    '<span class="sub" style="color:#475569">clr 由打印精度定：光固化 0.05 / FDM 0.2（默认）。配方文档 docs/bearing_ball_sizes.md · Fusion 生成 scripts/gen_bearing_full.py（CLR 常量）</span>';
+}
+
+let ctx=null;
+function render(){
+  document.getElementById('eccD_v').textContent='⌀'+(+eccD).toFixed(1);
+  document.getElementById('dh_v').textContent=(+dh).toFixed(1);
+  const B=calc();
+  drawSection(B); drawWedge(B); drawTop(B); readout(B);
+}
+['brgd'].forEach(id=> document.getElementById(id).addEventListener('input',()=>{
+  brgBall=+document.getElementById('brgd').value;
+  dh = 4;                                   // 统一球径（2.381/2.5）推荐孔深 4：窝上缘 0.61/0.55 打印线内，⌀16 孔 N=7
+  document.getElementById('dh').value = dh;
+  render();
+}));
+['clrsel','eccD','dh'].forEach(id=> document.getElementById(id).addEventListener('input',()=>{
+  brgClr=+document.getElementById('clrsel').value;
+  eccD=+document.getElementById('eccD').value;
+  dh=+document.getElementById('dh').value;
+  render();
+}));
+render();
+</script>
+</body>
+</html>

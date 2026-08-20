@@ -1,0 +1,11 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"author":	"TeamMaoLab (author: maoge)",
+	"description":	{
+		"":	"F3D 远程控制：本地 HTTP 服务，外部可热重载代码/触发导出"
+	},
+	"version":	"1.0",
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
