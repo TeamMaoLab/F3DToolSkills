@@ -31,6 +31,27 @@ RG = DBALL / 2 + CLR    # 窝半径 = 球半径 + 间隙（实验室原版 ⌀3+
 N_BALLS = None    # None=球数公式自动（⌀16→7 等，见 SKILL 锚点）；数字=手动覆盖
 RFILLET = 1.0     # 用户口述：外口两条边、r1（不擅自改）
 
+# ---- 文档属性参数覆盖（改参数不动脚本：属性组 F3DToolSkills，键=常量名，值=数字或null）----
+# 设置示例（一行）：design.attributes.add('F3DToolSkills', 'N_BALLS', '8')
+# 清除示例：attributes 按组遍历 deleteMe 同名项（null 值跳过）
+try:
+    _app_ov = adsk.core.Application.get()
+    _des_ov = _app_ov.activeDocument.design
+    _grp = list(_des_ov.attributes.itemsByGroup('F3DToolSkills'))
+    if _grp:
+        for _a_ov in _grp:
+            if _a_ov.name in ('DBALL', 'CLR', 'N_BALLS', 'RFILLET') and _a_ov.value not in ('', 'null', None):
+                try:
+                    _v_ov = None if _a_ov.value == 'None' else float(_a_ov.value)
+                    if _a_ov.name == 'N_BALLS' and _v_ov is not None:
+                        _v_ov = int(_v_ov)
+                except ValueError:
+                    continue
+                globals()[_a_ov.name] = _v_ov
+    del _app_ov, _des_ov, _grp
+except Exception:
+    pass  # 无活动文档等情况：静默用默认值
+
 
 def n_balls_auto(R_track, R2, R3, slotW, rg, dBall, gap_seat, g=0.5, c=0.3):
     """球数公式：N = floor(2π / max(θ口, θ窝, θ球))，下限3。
@@ -123,9 +144,7 @@ def main():
                 if ax2 is not None:
                     # 该组件自己的融合特征（带签名或旧名）
                     for f in list(root.features.combineFeatures):
-                        if f.name.startswith("轴承-宿主融合") and (
-                                f.name == "轴承-宿主融合-⌀{:.0f}".format((R1_old + 2 * DELTA + TWALL) * 2)
-                                or f.name == "轴承-宿主融合"):
+                        if f.name.startswith("轴承-宿主融合"):
                             f.deleteMe()
                     old_occ.deleteMe()
                     u2 = norm(ax2)
@@ -162,6 +181,8 @@ def main():
                             set_err = str(ex)[:120]
                         if set_err:
                             heal_err = "选择集补回失败: " + set_err
+                    else:
+                        heal_err = "旧组件已清但未找到 ⌀{:.0f} 孔面（宿主可能被改动）".format(R_h_guess * 2)
             except Exception as ex:
                 heal_err = str(ex)[:100]
     if face is None:

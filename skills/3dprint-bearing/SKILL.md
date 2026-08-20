@@ -70,11 +70,22 @@ curl -s --max-time 300 -G http://127.0.0.1:9099/exec \
 （DBALL/CLR/N_BALLS），改流程先提 issue 而不是现写变体。自己现写 py = 绕开
 幂等/验收/命名体系 = 前功尽弃。
 
-**修改的正确姿势 = 改参数 → 重新注入，一遍到位**：
-> 例：「球改 8 颗」→ 把脚本 `N_BALLS = 8` → 重新注入同一脚本。
-> 脚本幂等：自动清理同签名旧组件、重建、重新验收——**agent 不要自己动手删组件/删实体**
-> （手删会破坏融合状态和选择集，修不动只能开新档）。重建是设计机制不是浪费：
-> N 变更会级联（球窝×N/阵列×N/圆角边数/重命名），原地改特征链极易留脏状态。
+**修改的正确姿势 = 设文档属性 → 重新注入（两步，不动脚本文件、agent 不许手动删东西）**：
+
+```bash
+# 1. 设参数（存进文档属性，随文档持久保存；可覆盖 N_BALLS/DBALL/CLR/RFILLET）
+curl -G http://127.0.0.1:9099/exec --data-urlencode \
+  "code=import adsk.core as c;d=c.Application.get().activeDocument.design;d.attributes.add('F3DToolSkills','N_BALLS','8')"
+# 2. 重新注入（脚本自动读属性覆盖常量）
+curl -G http://127.0.0.1:9099/exec --data-urlencode "code@<skill>/scripts/gen_bearing_full.py"
+```
+
+- 清除覆盖（回到公式自动）：把同名属性 deleteMe 或值设 'None'
+- 脚本幂等：**自愈会自动删融合特征+旧组件、恢复孔面入选择集、重建、重新验收**
+  （实测：N=7 建成后设 N_BALLS=8 重注入 → 自愈重建 PASS ✓）
+- **agent 不要自己动手删组件/删实体**——手删会破坏融合状态和选择集，脚本的自愈路径
+  才是唯一正确清理方式。重建是设计机制不是浪费：N 变更级联球窝×N/阵列×N/圆角边数/重命名，
+  原地改特征链极易留脏状态。
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
 - 输出看三块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）

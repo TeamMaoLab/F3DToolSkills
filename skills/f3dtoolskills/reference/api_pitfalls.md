@@ -88,3 +88,5 @@
 - selectionSets.add 喂嵌套组件的体，occ 必须**root 视图**：组件链 occ.bRepBodies →
   InternalValidationError(owningCompOfEntity==owningCompOfGroups)；root.allOccurrences
   拿的 occ 或 createForAssemblyContext(rootocc) 均实测 OK（2026-08-20 三路径对照）。
+- `attributes.itemsByGroup()` 返回 **AttributeVector，无 .count**——用 `list(g)` 后 len/迭代。
+- 文档属性存参数是好模式：参数随文档持久、跨会话、不改脚本（见 3dprint-bearing 修改姿势）。
