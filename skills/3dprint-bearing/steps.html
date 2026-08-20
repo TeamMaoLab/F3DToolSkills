@@ -173,8 +173,8 @@ function drawS2(){
  const t=d.rg/Math.SQRT2, zB=d.zB, Dh=p.Dh;
  // 与 Fusion 同构的曲线生成（x=半径, z=深度向下）
  const off=2*t-d.delta, xa=d.Rt-t, xb=d.Rt+t;
- const inner=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],['arcL',[xa,zB+t]],[d.R1,zB+off],[d.R1,Dh],[0,Dh]];
- const outer=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],['arcR',[xb,zB+t]],[d.R4,zB+off],[d.R4,Dh],[d.R5,Dh],[d.R5,0]];
+ const inner=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],'arcL',[d.R1,zB+off],[d.R1,Dh],[0,Dh]];
+ const outer=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],'arcR',[d.R4,zB+off],[d.R4,Dh],[d.R5,Dh],[d.R5,0]];
  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
  const pad={l:52,r:26,t:26,b:44}, sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.55)/(Dh+4));
  const H=Math.round(pad.t+pad.b+(Dh)*sc+20);
@@ -213,11 +213,9 @@ function drawS2(){
  function drawLoop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
   ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
   for(let i=1;i<pts.length;i++){const q=pts[i];
-   if(Array.isArray(q))ctx.lineTo(X(q[0]),Yz(q[1]));
-   else if(q==='arcL'){ // 左弧（内盘球道）：135°→225°（经过 180°）
-    ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*.75,Math.PI*1.25,false);}
-   else if(q==='arcR'){ // 右弧（外环球道）：-45°→45°（经过 0°）
-    ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,-Math.PI/4,Math.PI/4,false);}}
+   if(q==='arcL')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*.75,Math.PI*1.25,false);
+   else if(q==='arcR')ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,-Math.PI/4,Math.PI/4,false);
+   else ctx.lineTo(X(q[0]),Yz(q[1]));}
   ctx.closePath();ctx.stroke();}
  drawLoop(inner,'#3b82f6');
  drawLoop([[d.R2,0],[d.R3,0],[d.R3,Dh],[d.R2,Dh]],'#0e9494');
