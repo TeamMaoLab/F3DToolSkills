@@ -76,6 +76,14 @@ cp -r <plugin根>/addin/F3DToolSkillsEndpoint <AddIns目录>/   # 目录已存�
 
 复制后抽验：`<AddIns>/F3DToolSkillsEndpoint/F3DToolSkillsEndpoint.py` 和 `.manifest` 两个文件都在。
 
+**第 2.5 步：写 webroot.txt**（把 `/s/` 路由指向用户的 skills 目录）
+
+add-in 目录下 `webroot.txt` 第一行 = skills 根路径（数据文件，改它不用重启）。
+把用户实际安装的 skills 根写进去，例如 `~/.agents/skills`（Linux/Mac）或
+`C:/Users/<用户>/.agents/skills`（Windows）。**仓库里带的 webroot.txt 是开发机路径，
+对用户无效，必须覆写。** 顺手抽验：`curl http://127.0.0.1:9099/s/3dprint-bearing/steps.html`
+返回 HTML 即通（未装该 skill 则属正常，跳过）。
+
 **第 3 步：引导用户手动启动（唯一需要人手的一步）**
 
 Fusion 不允许外部进程启动 add-in。两条路任选：

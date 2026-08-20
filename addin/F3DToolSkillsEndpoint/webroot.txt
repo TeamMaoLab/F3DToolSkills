@@ -1,1 +1,3 @@
-D:/robot/F3DToolSkills/skills
+# /s/ 路由的 skills 根目录（一行路径，改后即生效无需重启）。
+# 安装时由 agent 覆写为用户实际 skills 目录，常用：~/.agents/skills
+~/.agents/skills
