@@ -43,9 +43,9 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 </div>
 
 <div class="panel">
-<div class="head"><span class="tag">S2</span>关键截面草图 · Fusion 真实几何导出（<span id="sk2-src">加载中…</span>）</div>
+<div class="head"><span class="tag">S2</span>关键截面草图 · 参数化构造的完整复现（canvas 实时生成）</div>
 <canvas id="sk2" style="width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
-<div class="note">蓝=内盘闭环 · 青=中环闭环 · 紫=外环闭环 · 绿虚线=球窝刀构造圆 · 蓝=球 ⌀2.38 · 曲线坐标逐点来自 Fusion 草图（sketch2.json，dump_sketch2.py 导出）</div>
+<div class="note">与 Fusion 同一套构造逻辑：45° 倒角=刀圆 135° 切点切线（t=r_g/√2，回到 R1/R4 偏移 2t−δ）· 内外环各带球道弧 · 竖直点划线 x=0 即 r=0 旋转轴 · 改上方参数全图重算</div>
 <div class="v">验收：profile 数 in=1、ring=1、out=1</div>
 </div>
 
@@ -156,7 +156,7 @@ function drawS8(){const p=P(),d=derive(p),s=26;
  [[d.R1,'内盘'],[d.R3,'中环'],[d.R5,'外环→宿主']].forEach(([r,l],i)=>svg.innerHTML+=`<text class="dt" x="${X(r)-30+i*8}" y="${Y(p.Dh)+16}">${l}</text>`);
 }
 function renderAll(){const p=P(),d=derive(p);
- drawS8();loadRealSketch();
+ drawS2();drawS8();
  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
  <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
@@ -168,63 +168,71 @@ $('preset').onchange=e=>{const m={12:[6,4],16:[8,4],20:[10,4]}[e.target.value];$
 renderAll();
 </script></body></html>
 
-let SK2_DATA=null;
-async function loadRealSketch(){
- const cv=$('sk2');
- try{
-  const r=await fetch('/s/3dprint-bearing/sketch2.json');
-  SK2_DATA=await r.json();
-  $('sk2-src').textContent=`${SK2_DATA.component} · ${SK2_DATA.sketches.reduce((a,m)=>a+m.curves.length,0)} 曲线`;
- }catch(e){$('sk2-src').textContent='sketch2.json 缺失（先跑 dump_sketch2.py）';return;}
- const names=['内盘闭环','中环闭环','外环闭环','球窝刀-草图','球-⌀2.38-草图'];
- const styles={'内盘闭环':'#3b82f6','中环闭环':'#0e9494','外环闭环':'#8b5cf6','球窝刀-草图':'#16a34a','球-⌀2.38-草图':'#2563eb'};
- const S=SK2_DATA.sketches.filter(m=>names.includes(m.sketch));
- // 求包围盒
- let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
- S.forEach(m=>m.curves.forEach(c=>{
-  const pts=c.t==='line'?[c.a,c.b]:c.t==='circle'?[c.c]:[c.a,c.b,c.c];
-  pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});}));
- const dpr=window.devicePixelRatio||1, W=cv.clientWidth||760, H=Math.round(W*(y1-y0+6)/(x1-x0+6));
- cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
- const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+
+function drawS2(){
+ const p=P(),d=derive(p),cv=$('sk2');
+ const t=d.rg/Math.SQRT2, zB=d.zB, Dh=p.Dh;
+ // 与 Fusion 同构的曲线生成（x=半径, z=深度向下）
+ const off=2*t-d.delta, xa=d.Rt-t, xb=d.Rt+t;
+ const inner=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],['arcL',[xa,zB+t]],[d.R1,zB+off],[d.R1,Dh],[0,Dh]];
+ const outer=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],['arcR',[xb,zB+t]],[d.R4,zB+off],[d.R4,Dh],[d.R5,Dh],[d.R5,0]];
+ const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
+ const pad={l:52,r:26,t:26,b:44}, sc=Math.min((W-pad.l-pad.r)/(d.R5+2),(W*.55)/(Dh+4));
+ const H=Math.round(pad.t+pad.b+(Dh)*sc+20);
+ cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
+ const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
  const dark=document.documentElement.classList.contains('dark');
- const sc=(W-70)/(x1-x0+4), ox=45-x0*sc, oy=25+(y0)*sc; // 留白：左45 顶25
- const T=(x,y)=>[ox+x*sc, oy+(y-y0)*sc]; // 草图 y 向下为负 → 页面同向（材料在轴下方）
+ const X=r=>pad.l+r*sc, Y=z=>pad.t+(zB-z)*sc+ (H-pad.t-pad.b)/2 - Dh*sc/2 + Dh*sc/2; // z 从顶往下
+ const Yz=z=>pad.t+((z)/(Dh))*(H-pad.t-pad.b);
  ctx.clearRect(0,0,W,H);
- // 网格（每 1mm）
- ctx.strokeStyle=dark?'#1d232b':'#eef0f3'; ctx.lineWidth=1;
- for(let gx=Math.ceil(x0);gx<=x1+2;gx++){const[px]=T(gx,0);ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,H);ctx.stroke();}
- for(let gy=Math.ceil(y0-1);gy<=0;gy++){const[,py]=T(0,gy);ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();}
- // 中心线（点划）：r=0 轴线（草图 y=0）与球心竖线 x=5.2
- ctx.strokeStyle='#e879f9'; ctx.setLineDash([12,3,3,3]); ctx.lineWidth=1;
- let ax=T(0,0)[1]; ctx.beginPath();ctx.moveTo(20,ax);ctx.lineTo(W-12,ax);ctx.stroke();
- let vx=T(5.20,0)[0]; ctx.beginPath();ctx.moveTo(vx,10);ctx.lineTo(vx,H-24);ctx.stroke();
+ // 1mm 网格
+ ctx.strokeStyle=dark?'#1d232b':'#eef0f3';ctx.lineWidth=1;
+ for(let r=0;r<=d.hostR;r++){ctx.beginPath();ctx.moveTo(X(r),pad.t-6);ctx.lineTo(X(r),H-pad.b+6);ctx.stroke();}
+ for(let z=0;z<=Dh;z++){ctx.beginPath();ctx.moveTo(pad.l-8,Yz(z));ctx.lineTo(W-pad.r+8,Yz(z));ctx.stroke();}
+ // 中心线：x=0 旋转轴（竖）、z=zB（横）、x=Rt（竖）
+ ctx.strokeStyle='#e879f9';ctx.setLineDash([12,3,3,3]);
+ ctx.beginPath();ctx.moveTo(X(0),pad.t-14);ctx.lineTo(X(0),H-pad.b+14);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(pad.l-14,Yz(zB));ctx.lineTo(W-pad.r+14,Yz(zB));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-14);ctx.lineTo(X(d.Rt),H-pad.b+14);ctx.stroke();
  ctx.setLineDash([]);
- ctx.fillStyle='#e879f9'; ctx.font='10px Consolas,monospace';
- ctx.fillText('r=0 旋转轴',20,ax-5); ctx.fillText('R_track=5.20',vx+5,16);
- // 曲线
- S.forEach(m=>{const col=styles[m.sketch];const dashed=m.sketch==='球窝刀-草图';
-  ctx.strokeStyle=col; ctx.lineWidth=m.sketch.startsWith('球-')?2.2:1.8;
-  ctx.setLineDash(dashed?[6,4]:[]);
-  m.curves.forEach(c=>{
-   if(c.t==='line'){const[a1,b1]=T(c.a[0],c.a[1]),[a2,b2]=T(c.b[0],c.b[1]);
-    ctx.beginPath();ctx.moveTo(a1,b1);ctx.lineTo(a2,b2);ctx.stroke();}
-   else if(c.t==='arc'){const[ccx,ccy]=T(c.c[0],c.c[1]);
-    let a0=Math.atan2(c.a[1]-c.c[1],c.a[0]-c.c[0]),a1r=Math.atan2(c.b[1]-c.c[1],c.b[0]-c.c[0]);
-    if(a1r<a0)a1r+=2*Math.PI;
-    ctx.beginPath();ctx.arc(ccx,ccy,c.r*sc,a0,a1r,false);ctx.stroke();}
-   else if(c.t==='circle'){const[ccx,ccy]=T(c.c[0],c.c[1]);
-    ctx.beginPath();ctx.arc(ccx,ccy,c.r*sc,0,7);ctx.stroke();}
-  });
-  ctx.setLineDash([]);
- });
- // R 刻度（底部）
- ctx.fillStyle=dark?'#8b94a1':'#5a6472'; ctx.font='10px Consolas,monospace'; ctx.textAlign='center';
- const yr=T(0,0)[1]+18;
- [[0,'0'],[4.40,'R1'],[4.70,'R2'],[5.70,'R3'],[6.00,'R4'],[8.00,'R5']].forEach(([r,l])=>{
-  const[px]=T(r,0);ctx.strokeStyle=dark?'#8b94a1':'#5a6472';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(px,yr-4);ctx.lineTo(px,yr+4);ctx.stroke();ctx.fillText(l,px,yr+16);});
- ctx.strokeStyle=dark?'#8b94a1':'#5a6472';
- ctx.beginPath();ctx.moveTo(T(0,0)[0],yr);ctx.lineTo(T(8.0,0)[0],yr);ctx.stroke();
+ ctx.fillStyle='#e879f9';ctx.font='10px Consolas,monospace';
+ ctx.fillText('r=0 旋转轴',X(0)+4,pad.t-4);
+ ctx.fillText('R_track='+d.Rt.toFixed(2),X(d.Rt)+4,pad.t-4);
+ ctx.textAlign='right';ctx.fillText('z_B='+zB.toFixed(1),pad.l-6,Yz(zB)-4);ctx.textAlign='left';
+ // 刀圆构造（绿虚线：圆+过心直径线）
+ ctx.strokeStyle='#16a34a';ctx.lineWidth=1;ctx.setLineDash([6,4]);
+ ctx.beginPath();ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,0,7);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(X(d.Rt-d.rg),Yz(zB));ctx.lineTo(X(d.Rt+d.rg),Yz(zB));ctx.stroke();
+ ctx.setLineDash([]);
+ // 三闭环
+ function loop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
+  for(let i=1;i<pts.length;i++){const q=pts[i];
+   if(q[0]==='arcL'){ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*0.75,Math.PI*1.25,true);i++;ctx.moveTo(X(pts[i+0]===undefined?0:0),0);}
+  }
+  ctx.stroke();}
+ // 用 path 直接写三段（arc 处理内嵌在序列里）
+ function drawLoop(pts,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(X(pts[0][0]),Yz(pts[0][1]));
+  for(let i=1;i<pts.length;i++){const q=pts[i];
+   if(Array.isArray(q))ctx.lineTo(X(q[0]),Yz(q[1]));
+   else if(q==='arcL'){ // 左弧（内盘球道）：135°→225°（经过 180°）
+    ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,Math.PI*.75,Math.PI*1.25,false);}
+   else if(q==='arcR'){ // 右弧（外环球道）：-45°→45°（经过 0°）
+    ctx.arc(X(d.Rt),Yz(zB),d.rg*sc,-Math.PI/4,Math.PI/4,false);}}
+  ctx.closePath();ctx.stroke();}
+ drawLoop(inner,'#3b82f6');
+ drawLoop([[d.R2,0],[d.R3,0],[d.R3,Dh],[d.R2,Dh]],'#0e9494');
+ drawLoop(outer,'#8b5cf6');
+ // 球
+ ctx.strokeStyle='#2563eb';ctx.lineWidth=2.4;
+ ctx.beginPath();ctx.arc(X(d.Rt),Yz(zB),p.db/2*sc,0,7);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(X(d.Rt-p.db/2),Yz(zB));ctx.lineTo(X(d.Rt+p.db/2),Yz(zB));ctx.stroke();
+ // R 刻度 + 名称
+ ctx.fillStyle=dark?'#8b94a1':'#5a6472';ctx.font='10px Consolas,monospace';ctx.textAlign='center';
+ [[0,'0'],[d.R1,'R1'],[d.R2,'R2'],[d.R3,'R3'],[d.R4,'R4'],[d.R5,'R5']].forEach(([r,l])=>{
+  ctx.strokeStyle=dark?'#8b94a1':'#5a6472';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(X(r),H-pad.b+6);ctx.lineTo(X(r),H-pad.b+14);ctx.stroke();
+  ctx.fillText(l+'='+r.toFixed(1),X(r),H-pad.b+26);});
+ ctx.beginPath();ctx.moveTo(X(0),H-pad.b+10);ctx.lineTo(X(d.R5),H-pad.b+10);ctx.stroke();
  ctx.textAlign='left';
 }
