@@ -49,13 +49,6 @@ svg.scene{background:var(--bg);border:1px solid var(--line);border-radius:8px;wi
 <div class="v">验收：profile 数 in=1、ring=1、out=1</div>
 </div>
 
-<div class="panel">
-<div class="head"><span class="tag">S8</span>成品剖切（S3–S7 完成后 · 旋转建模半剖视）</div>
-<canvas id="sk8" style="width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:8px"></canvas>
-<div class="note">蓝白制图风：剖面线方向区分零件（内盘↗ / 中环↖ / 宿主↘）· 内外环各带球道槽 · 中环=保持架（⌀窝×N 挖空+V 口楔）· 深蓝=钢球（骑两道槽之间，不打印）· 参数与 S2 联动</div>
-<div class="v">验收：内盘 Torus×1 · 中环 Sphere×N · 球心共面 z=D_h/2 · verify PASS ✓</div>
-</div>
-
 <div class="panel"><h2>全流程树（S0–S9）</h2>
 <div class="step-head"><span class="tag">S0</span>输入与配方派生</div>
 <div class="branch"><div class="sub-step">读设计选择集圆柱孔面（无则自愈：删旧组件反推孔签名）</div>
@@ -121,99 +114,8 @@ function groovePath(R1,Rt,rg,zB,Dh,s){ // 内盘右缘球道凹口：刀圆@Rt,z
 }
 
 
-function drawS8(){
- const p=P(),d=derive(p),cv=$('sk8');
- const t=d.rg/Math.SQRT2, off=2*t-p.delta, xa=d.Rt-t, xb=d.Rt+t, zB=d.zB, Dh=p.Dh;
- const hostR=d.R5+4;
- const dpr=window.devicePixelRatio||1,W=cv.clientWidth||760;
- const pad={l:40,r:56,t:30,b:70};
- const sc=Math.min((W-pad.l-pad.r)/(hostR+1),(W*.5)/(Dh+3));
- const H=Math.round(pad.t+pad.b+Dh*sc+10);
- cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';cv.style.background='#fff';
- const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
- const X=r=>pad.l+r*sc, Y=z=>pad.t+z*sc;
- // 格纸
- ctx.strokeStyle='#dce9f7';ctx.lineWidth=1;
- for(let r=0;r<=hostR;r++){ctx.beginPath();ctx.moveTo(X(r)+.5,pad.t-8);ctx.lineTo(X(r)+.5,H-pad.b+8);ctx.stroke();}
- for(let z=0;z<=Math.ceil(Dh);z++){ctx.beginPath();ctx.moveTo(pad.l-10,Y(z)+.5);ctx.lineTo(W-pad.r+10,Y(z)+.5);ctx.stroke();}
- // 弧采样（与 S2 同法）
- const TAU=Math.PI*2;
- function arcPts(c,a,b,mid,n=40){ // 返回 [x,z] 点列（模型 y-up 语义：传入直接用 z 深度）
-  const ang=q=>Math.atan2(q[1]-c[1],q[0]-c[0]);
-  const a0=ang(a),a1=ang(b);let delta=(a1-a0)%TAU;if(delta<0)delta+=TAU;
-  const midA=mid*Math.PI/180;
-  const near=x=>{let v=((x-midA)%TAU+TAU)%TAU;return Math.min(v,TAU-v);};
-  if(near(a0-delta/2)<near(a0+delta/2))delta-=TAU;
-  const pts=[];for(let i=0;i<=n;i++){const a=a0+delta*i/n;pts.push([c[0]+d.rg*Math.cos(a),c[1]+d.rg*Math.sin(a)]);}
-  return pts;}
- // 剖面填充：clip 后画斜线
- function hatch(path2d,angleDeg,gap,col,w){
-  ctx.save();ctx.clip(path2d,'evenodd');
-  ctx.strokeStyle=col;ctx.lineWidth=w||1;
-  const a=angleDeg*Math.PI/180,dx=Math.cos(a),dy=Math.sin(a);
-  const diag=Math.hypot(W,H);
-  for(let k=-diag;k<diag;k+=gap){
-   ctx.beginPath();
-   ctx.moveTo(W/2+dx*k-diag/2*dx,H/2+dy*k-diag/2*dy);
-   ctx.lineTo(W/2+dx*k+diag/2*dx,H/2+dy*k+diag/2*dy);
-   ctx.stroke();}
-  ctx.restore();}
- function poly(pts){const q=new Path2D();q.moveTo(X(pts[0][0]),Y(pts[0][1]));for(let i=1;i<pts.length;i++)q.lineTo(X(pts[i][0]),Y(pts[i][1]));q.closePath();return q;}
- // ① 内盘：0..R1 带左凹球道
- const innerPts=[[0,0],[d.R1,0],[d.R1,zB-off],[xa,zB-t],
-   ...arcPts([d.Rt,zB],[xa,zB-t],[xa,zB+t],180),
-   [d.R1,zB+off],[d.R1,Dh],[0,Dh]];
- const pInner=poly(innerPts);
- // ② 宿主+外环一体：R4 带右凹球道 → hostR
- const outerPts=[[d.R4,0],[d.R4,zB-off],[xb,zB-t],
-   ...arcPts([d.Rt,zB],[xb,zB-t],[xb,zB+t],0),
-   [d.R4,zB+off],[d.R4,Dh],[hostR,Dh],[hostR,0]];
- const pHost=poly(outerPts);
- // ③ 中环：R2..R3 矩形 − 球窝圆 − V口楔（evenodd 挖洞）
- const pCage=poly([[d.R2,0],[d.R3,0],[d.R3,Dh],[d.R2,Dh]]);
- const pocket=new Path2D();pocket.arc(X(d.Rt),Y(zB),d.rg*sc,0,TAU);
- const vw=Dh*.5;
- const vslot=new Path2D();vslot.moveTo(X(d.R3),Y(zB-vw/2.2));vslot.lineTo(X(d.R3-vw),Y(zB));vslot.lineTo(X(d.R3),Y(zB+vw/2.2));vslot.closePath();
- const cageAll=new Path2D();cageAll.addPath(pCage);cageAll.addPath(pocket);cageAll.addPath(vslot);
- // 填剖面线（不同零件不同方向——制图规范）
- hatch(pInner,45,5,'#7fb3d5');
- hatch(pHost,135,6,'#b0bec5');
- hatch(cageAll,-45,5,'#90caf9');
- // 轮廓线
- ctx.strokeStyle='#1e88e5';ctx.lineWidth=2;
- ctx.stroke(pInner);ctx.stroke(pHost);
- ctx.stroke(cageAll);
- // ④ 球（深蓝实心 + 中心十字）
- ctx.fillStyle='#0d47a1';
- ctx.beginPath();ctx.arc(X(d.Rt),Y(zB),p.db/2*sc,0,TAU);ctx.fill();
- ctx.strokeStyle='#82b1ff';ctx.lineWidth=1;
- ctx.beginPath();ctx.moveTo(X(d.Rt-p.db/2),Y(zB));ctx.lineTo(X(d.Rt+p.db/2),Y(zB));ctx.stroke();
- ctx.beginPath();ctx.moveTo(X(d.Rt),Y(zB-p.db/2));ctx.lineTo(X(d.Rt),Y(zB+p.db/2));ctx.stroke();
- // 中心线
- ctx.strokeStyle='#e58fb1';ctx.setLineDash([12,3,3,3]);
- ctx.beginPath();ctx.moveTo(X(0),pad.t-14);ctx.lineTo(X(0),H-pad.b+14);ctx.stroke();
- ctx.beginPath();ctx.moveTo(X(d.Rt),pad.t-14);ctx.lineTo(X(d.Rt),H-pad.b+14);ctx.stroke();
- ctx.setLineDash([]);
- ctx.fillStyle='#d06a96';ctx.font='10px Consolas,monospace';
- ctx.fillText('r=0',X(0)+3,pad.t-4);
- ctx.fillText('R_track',X(d.Rt)+3,pad.t-4);
- // 标注
- ctx.fillStyle='#546e7a';ctx.font='11px system-ui';
- ctx.fillText('内盘',X(1.2),Y(Dh/2));
- ctx.fillText('中环(保持架·窝×'+d.N+')',X(d.R2)-30,pad.t+12);
- ctx.fillText('宿主(外环已融合)',X(d.R5+0.4),Y(Dh/2));
- ctx.fillText('球 ⌀'+p.db.toFixed(3)+' ×'+d.N+'（不打印）',X(d.Rt-p.db),Y(zB)-p.db/2*sc-6);
- // R 刻度
- ctx.strokeStyle='#78909c';ctx.fillStyle='#607d8b';ctx.font='10px Consolas,monospace';
- const yr=H-pad.b+22;
- ctx.beginPath();ctx.moveTo(X(0),yr);ctx.lineTo(X(hostR),yr);ctx.stroke();
- [[0,'0',0],[d.R1,'R1',0],[d.R2,'R2',1],[d.R3,'R3',0],[d.R4,'R4',1],[d.R5,'R5',0],[hostR,'宿主外',0]].forEach(([r,l,row])=>{
-  ctx.beginPath();ctx.moveTo(X(r),yr-5);ctx.lineTo(X(r),yr+5+row*13);ctx.stroke();
-  ctx.textAlign='center';ctx.fillText(l+(r===hostR?'':'='+r.toFixed(1)),X(r),yr+16+row*13);});
- ctx.textAlign='left';
-}
 function renderAll(){const p=P(),d=derive(p);
- drawS2();drawS8();verifyVsFusion();
+ drawS2();verifyVsFusion();
  $('derived').innerHTML=`<tr><th>派生</th><th>公式</th><th>值</th><th>派生</th><th>公式</th><th>值</th></tr>
  <tr><td>窝 rg</td><td class="mono">球/2+clr</td><td class="val">${d.rg.toFixed(3)}</td><td>球道 R_track</td><td class="mono">R_h−δ−t壁</td><td class="val">${d.Rt.toFixed(2)}</td></tr>
  <tr><td>R1–R5</td><td class="mono">同源公式</td><td class="val">${d.R1.toFixed(1)}/${d.R2.toFixed(1)}/${d.R3.toFixed(1)}/${d.R4.toFixed(1)}/${d.R5.toFixed(1)}</td><td>球心高 zB</td><td class="mono">D_h/2</td><td class="val">${d.zB.toFixed(1)}</td></tr>
