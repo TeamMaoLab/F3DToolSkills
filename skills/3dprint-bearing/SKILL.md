@@ -101,7 +101,7 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode "code@<skill>/scripts/gen_be
   原地改特征链极易留脏状态。
 
 - `DBALL`/`CLR`/`N_BALLS = None` → 球数公式自动；填数字 → 手动覆盖
-- steps 编号 **S0-S8**（S1过轴面/S2闭环草图/S3旋转三体/S4球窝切割/S5装球口/S6标准球+阵列+圆角/S7宿主融合/S8整理与选择集），与 steps.html 手册的流程树同语言
+- steps 编号 **S0-S8**（S1过轴面/S2闭环草图/S3旋转三体/S4球窝切割/S5装球口/S6标准球+阵列+圆角/S7宿主融合/S8.0特征归组/S8.1整理/S8.2选择集/S8.3强制验收），与 steps.html 手册的流程树同语言
 - 输出看三块：`steps`（每步状态）、`n_formula`（球数依据）、`verify`（几何验收）
 - **只有 `verify.总结论 == "PASS ✓"` 才算成功**。steps 全 ok 但几何错的历史案例太多（见下）
 
