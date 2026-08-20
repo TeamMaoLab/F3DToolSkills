@@ -109,6 +109,11 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode \
 - WSL → Windows Fusion：`127.0.0.1:9099` 直通；Fusion 读 WSL 文件走 UNC `\\wsl.localhost\<distro>\...`。
 - **安全**：/exec 即任意代码执行，add-in 只绑本地回环，绝不端口转发到公网。
 
+## 建模通用规范（任何建模任务先读 `reference/modeling_standards.md`）
+
+命名体系 / 构造线草图纪律 / 参数三层 / 分步特征+体积对账 / 验收门槛 / 脚手架收尾。
+**"只是画个演示"也不例外**——没有这套规范的模型就是一次性垃圾。
+
 ## 工程纪律（本 skill 的灵魂，违反必踩坑）
 
 1. **幂等构建**：每步前清理同重名特征/草图；删组件必须**先删特征再删 body**（合并特征悬空会
@@ -158,6 +163,7 @@ curl -G http://127.0.0.1:9099/exec --data-urlencode \
 ## reference（相对本 skill 目录；add-in/安装器在 plugin 根，即 `../../`）
 
 - `reference/api_pitfalls.md` —— Python 3.14 API 坑位表（写代码前必查）
+- `reference/modeling_standards.md` —— 实体建模通用规范（动手建模前必读）
 - `reference/workflow.md` —— 远程链路细节 / 坐标系三层结构 / 导出契约 / 调试手段
 - `../../addin/F3DToolSkillsEndpoint/` —— 核心 add-in 源码（/ping /exec /reload）
 - `../stl-export/` —— 应用 #1（最简范例）
